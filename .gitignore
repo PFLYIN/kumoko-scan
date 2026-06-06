@@ -1,0 +1,8 @@
+node_modules/
+.env
+.env.local
+dist/
+build/
+.docker/
+*.log
+.DS_Store
