@@ -7,4 +7,13 @@ export default defineConfig({
     react(),
     tailwindcss(), 
   ],
+  // 👇 ADICIONE ESSE BLOCO AQUI EMBAIXO
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
+    allowedHosts: [
+      'kumokoscan.local',
+      'localhost'
+    ]
+  }
 })

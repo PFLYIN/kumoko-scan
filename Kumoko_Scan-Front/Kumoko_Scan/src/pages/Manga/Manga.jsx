@@ -58,7 +58,7 @@ function Manga() {
             <div className="card-image-wrap">
               {manga.capa_url ? (
                 <img 
-                  src={`http://localhost:3000/files/${manga.capa_url.replace(/\\/g, '/').split('uploads/')[1]}`} 
+                  src={manga.capa_url} 
                   alt={`Capa ${manga.nome}`} 
                   className="img-capa"
                 />

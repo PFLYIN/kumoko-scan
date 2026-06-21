@@ -5,12 +5,11 @@ import { uploadCover } from '../config/multer';
 
 const router = Router();
 
-router.post('/', uploadCover.single('cover_image'), MangaController.create);
+// 🎯 UNIFICADO: Protegido por token e pronto para receber o arquivo "capa" vindo do React
+router.post('/', authMiddleware, uploadCover.single('capa'), MangaController.create);
 
 router.get('/', MangaController.list);
-router.put('/:id', MangaController.update);
-router.delete('/:id', MangaController.delete);
-
-router.post('/', authMiddleware, MangaController.create);
+router.put('/:id', authMiddleware, MangaController.update);
+router.delete('/:id', authMiddleware, MangaController.delete);
 
 export default router;

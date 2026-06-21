@@ -1,14 +1,13 @@
 import { DataTypes, Model } from 'sequelize';
-import sequelize from '../config/database'; 
+import sequelize from '../config/database/index';
 
 export class User extends Model {
-declare id: number;
+  declare id: number;
   declare nome: string;
   declare email: string;
   declare cpf: string;
   declare senha: string;
 }
-
 
 User.init(
   {
@@ -18,10 +17,10 @@ User.init(
     cpf: { type: DataTypes.STRING, allowNull: false, unique: true },
     senha: { type: DataTypes.STRING, allowNull: false },
   },
-  
   { 
-    sequelize, 
-    modelName: 'usuarios',
+    sequelize, // Passa a instância validada
+    modelName: 'User',
+    tableName: 'usuarios', // Força a bater na tabela exata do seu escopo SQL
     timestamps: false
   }
 );

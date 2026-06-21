@@ -40,7 +40,7 @@ function Livro() {
             <div className="card-image-wrap">
               {livro.capa_url ? (
                 <img
-                  src={`http://localhost:3000/files/${livro.capa_url.replace(/\\/g, '/').split('uploads/')[1]}`}
+                  src={livro.capa_url}
                   alt={livro.nome}
                   className="img-capa"
                 />

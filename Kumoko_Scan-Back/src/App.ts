@@ -31,12 +31,16 @@ class App {
     };
 
     this.server.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, swaggerOptions));
+    
+    // Rotas globais/autônomas (elas já tratam seus caminhos internos)
     this.server.use(authRoutes); 
     this.server.use(uploadRoutes);
-    this.server.use('/mangas', mangaRoutes);
-    this.server.use('/capitulos', capituloRoutes);
-    this.server.use('/livros', livroRoutes);
-  } 
+    
+    // 🎯 CORREÇÃO DOSENCONTROS: Amarre as rotas aos caminhos nominais que o Nginx repassa
+    this.server.use('/mangas', mangaRoutes);      // Transforma o router.get('/') em GET /mangas
+    this.server.use('/capitulos', capituloRoutes);  // Transforma as rotas em GET/POST /capitulos
+    this.server.use('/livros', livroRoutes);      // Transforma as rotas em GET/POST /livros
+  }
 }
 
 export default new App().server;
