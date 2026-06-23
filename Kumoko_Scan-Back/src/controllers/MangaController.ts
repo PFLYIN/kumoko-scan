@@ -59,7 +59,9 @@ class MangaController {
   public async delete(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const manga = await Manga.findByPk(id);
+      
+      // 🎯 CORREÇÃO 1: Forçamos o TypeScript a entender o ID como string para o findByPk
+      const manga = await Manga.findByPk(String(id));
       
       if (!manga) return res.status(404).json({ error: 'Mangá não encontrado.' });
 
@@ -67,8 +69,10 @@ class MangaController {
       if (manga.capa_url) {
         const nomeArquivo = path.basename(manga.capa_url);
         const caminhoFisicoCapa = path.resolve(__dirname, '..', '..', 'uploads', 'covers', nomeArquivo);
-        if (fs.existsSync(caminhiFisicoCapa)) {
-          fs.unlinkSync(caminhiFisicoCapa);
+        
+        // 🎯 CORREÇÃO 2: Variável corrigida de 'caminhi' para 'caminho'
+        if (fs.existsSync(caminhoFisicoCapa)) {
+          fs.unlinkSync(caminhoFisicoCapa);
         }
       }
 
