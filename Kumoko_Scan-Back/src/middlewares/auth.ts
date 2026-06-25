@@ -9,7 +9,10 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
   }
 
   try {
-    jwt.verify(token, 'KUMOKO_SECRET');
+    // 🎯 Puxando a chave mestra de forma dinâmica e segura do .env
+    const secret = process.env.JWT_SECRET || 'KUMOKO_SECRET';
+    jwt.verify(token, secret);
+    
     return next();
   } catch (error) {
     return res.status(401).json({ error: 'Token inválido ou expirado.' });

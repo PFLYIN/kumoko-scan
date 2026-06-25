@@ -21,12 +21,13 @@ function gerarCPFValido(): string {
 describe('🚀 Bateria de Testes End-to-End - Rubrica Kumoko Scan', () => {
   let token: string;
   let mangaId: number;
+  let livroId: number; // 🎯 Variável adicionada para o ciclo completo de Livros
 
   const aleatorio = Math.floor(Math.random() * 90000) + 10000;
   const userTeste = {
     nome: 'Pedro Baia Teste',
     email: `pedro.scan${aleatorio}@kumoko.com`,
-    cpf: gerarCPFValido(), // 🎯 CPF legítimo gerado dinamicamente
+    cpf: gerarCPFValido(),
     senha: 'SenhaForte123!'
   };
 
@@ -55,7 +56,6 @@ describe('🚀 Bateria de Testes End-to-End - Rubrica Kumoko Scan', () => {
     });
 
     it('Deve realizar login com sucesso e retornar o JWT (Status 200)', async () => {
-      // Garante a persistência do usuário antes de tentar logar
       await request(app).post('/register').send(userTeste);
 
       const res = await request(app)
@@ -70,7 +70,7 @@ describe('🚀 Bateria de Testes End-to-End - Rubrica Kumoko Scan', () => {
       token = res.body.token; 
     });
 
-    it('Deve rejeitar o login com senha incorreta', async () => {
+    it('Deve rejeitar o login com senha incorreta (Status 400/401)', async () => {
       const res = await request(app)
         .post('/login')
         .send({
@@ -79,6 +79,16 @@ describe('🚀 Bateria de Testes End-to-End - Rubrica Kumoko Scan', () => {
         });
 
       expect(res.status).toBeGreaterThanOrEqual(400);
+    });
+
+    // 🎯 NOVO: Teste de falha de segurança
+    it('Deve negar acesso a uma rota protegida se o token for falso ou adulterado (Status 401)', async () => {
+      const res = await request(app)
+        .post('/mangas')
+        .set('Authorization', `Bearer token_falso_inventado_para_quebrar_o_sistema`)
+        .send({ nome: 'Teste Hack', volume: 1 });
+
+      expect(res.status).toBe(401);
     });
   });
 
@@ -92,6 +102,17 @@ describe('🚀 Bateria de Testes End-to-End - Rubrica Kumoko Scan', () => {
         .send({ nome: 'Mangá Pirata', volume: 1 });
 
       expect(res.status).toBe(401);
+    });
+
+    // 🎯 NOVO: Teste de falha de validação
+    it('Deve falhar ao tentar cadastrar um mangá sem os campos obrigatórios ou inválidos (Status 400)', async () => {
+      const res = await request(app)
+        .post('/mangas')
+        .set('Authorization', `Bearer ${token}`)
+        .field('volume', -5) // Tentando quebrar a lógica com volume negativo
+        .attach('capa', Buffer.from('fake-image-data'), 'capa.png');
+
+      expect(res.status).toBe(400);
     });
 
     it('Deve cadastrar um mangá com sucesso estando autenticado (Status 201)', async () => {
@@ -122,6 +143,16 @@ describe('🚀 Bateria de Testes End-to-End - Rubrica Kumoko Scan', () => {
       expect(res.status).toBe(200);
     });
 
+    // 🎯 NOVO: Teste de falha na edição
+    it('Deve retornar erro ao tentar editar um mangá inexistente (Status 404)', async () => {
+      const res = await request(app)
+        .put(`/mangas/999999`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ nome: 'Manga Fantasma', volume: 1 });
+
+      expect(res.status).toBe(404);
+    });
+
     it('Deve excluir o mangá do sistema com sucesso (Status 200)', async () => {
       const res = await request(app)
         .delete(`/mangas/${mangaId}`)
@@ -150,10 +181,33 @@ describe('🚀 Bateria de Testes End-to-End - Rubrica Kumoko Scan', () => {
         .attach('cover_image', Buffer.from('fake-book-data'), 'livro.jpg');
 
       expect([200, 201]).toContain(res.status);
+      
+      // 🎯 Capturando o ID para usar nas etapas de Editar e Excluir
+      const corpo = res.body.dados || res.body;
+      livroId = corpo.id;
     });
 
     it('Deve listar os livros cadastrados (Status 200)', async () => {
       const res = await request(app).get('/livros');
+      expect(res.status).toBe(200);
+    });
+
+    // 🎯 NOVO: Fechando o ciclo para ser um "CRUD Completo"
+    it('Deve editar o livro com sucesso (Status 200)', async () => {
+      const res = await request(app)
+        .put(`/livros/${livroId}`)
+        .send({ nome: `Livro Teste Editado ${aleatorio}` });
+
+      expect(res.status).toBe(200);
+    });
+
+    it('Deve retornar erro ao tentar excluir um livro inexistente (Status 404)', async () => {
+      const res = await request(app).delete(`/livros/999999`);
+      expect(res.status).toBe(404);
+    });
+
+    it('Deve excluir o livro do sistema com sucesso (Status 200)', async () => {
+      const res = await request(app).delete(`/livros/${livroId}`);
       expect(res.status).toBe(200);
     });
   });

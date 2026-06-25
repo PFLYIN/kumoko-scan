@@ -7,16 +7,30 @@ function Livro() {
   const [livros, setLivros] = useState([]);
 
   useEffect(() => {
-    const buscarLivros = async () => {
-      try {
-        const res = await api.get('/livros');
-        setLivros(res.data);
-      } catch (error) {
-        console.error("Erro ao buscar livros:", error);
-      }
-    };
     buscarLivros();
   }, []);
+
+  const buscarLivros = async () => {
+    try {
+      const res = await api.get('/livros');
+      setLivros(res.data);
+    } catch (error) {
+      console.error("Erro ao buscar livros:", error);
+    }
+  };
+
+  // 🎯 NOVO: Função para Excluir
+  const handleExcluir = async (id) => {
+    if (window.confirm('Tem certeza que deseja excluir este livro?')) {
+      try {
+        await api.delete(`/livros/${id}`);
+        setLivros(livros.filter(livro => livro.id !== id));
+        alert('Livro excluído com sucesso!');
+      } catch (error) {
+        alert('Erro ao excluir livro.');
+      }
+    }
+  };
 
   return (
     <div className="container-catalogo-livros">
@@ -39,11 +53,7 @@ function Livro() {
           <div key={livro.id} className="card-livro">
             <div className="card-image-wrap">
               {livro.capa_url ? (
-                <img
-                  src={livro.capa_url}
-                  alt={livro.nome}
-                  className="img-capa"
-                />
+                <img src={livro.capa_url} alt={livro.nome} className="img-capa" />
               ) : (
                 <div className="sem-capa">Sem Capa</div>
               )}
@@ -51,6 +61,11 @@ function Livro() {
 
             <div className="card-content">
               <h3>{livro.nome}</h3>
+              {/* 🎯 NOVO: Botões de Ação */}
+              <div className="card-actions" style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <Link to={`/livro/editar/${livro.id}`} className="btn-editar" style={{ background: '#4CAF50', color: '#fff', padding: '5px 10px', borderRadius: '4px', textDecoration: 'none', fontSize: '14px' }}>Editar</Link>
+                <button onClick={() => handleExcluir(livro.id)} className="btn-excluir" style={{ background: '#f44336', color: '#fff', padding: '5px 10px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px' }}>Excluir</button>
+              </div>
             </div>
           </div>
         ))}

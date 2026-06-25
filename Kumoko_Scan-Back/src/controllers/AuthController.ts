@@ -14,7 +14,9 @@ class AuthController {
       const senhaValida = await bcrypt.compare(senha, user.senha);
       if (!senhaValida) return res.status(401).json({ error: 'Senha incorreta!' });
 
-      const token = jwt.sign({ id: user.id }, 'KUMOKO_SECRET', { expiresIn: '1d' });
+      // 🎯 CORREÇÃO: Puxando o segredo do .env de forma dinâmica
+      const secret = process.env.JWT_SECRET || 'KUMOKO_SECRET';
+      const token = jwt.sign({ id: user.id }, secret, { expiresIn: '1d' });
 
       return res.status(200).json({ 
         message: 'Login com sucesso',
