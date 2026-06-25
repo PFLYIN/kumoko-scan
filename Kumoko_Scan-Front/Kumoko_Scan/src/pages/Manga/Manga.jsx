@@ -37,7 +37,8 @@ function Manga() {
   };
 
   return (
-    <div className="container-catalogo">
+    <main className="catalog-main">
+      <div className="container-catalogo">
       <div className="catalog-header">
         <div>
           <h2>Catálogo de Mangás</h2>
@@ -88,6 +89,7 @@ function Manga() {
         ))}
       </div>
     </div>
+    </main>
   );
 }
 

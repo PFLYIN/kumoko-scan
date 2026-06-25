@@ -33,7 +33,8 @@ function Livro() {
   };
 
   return (
-    <div className="container-catalogo-livros">
+    <main className="catalog-main">
+      <div className="container-catalogo-livros">
       <div className="catalog-header">
         <div>
           <h2>Biblioteca de Livros</h2>
@@ -71,6 +72,7 @@ function Livro() {
         ))}
       </div>
     </div>
+    </main>
   );
 }
 

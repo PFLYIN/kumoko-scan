@@ -22,7 +22,7 @@ class CapituloController {
             const { id } = req.params;
             const { numero, titulo } = req.body;
             
-            // 🎯 AJUSTADO: Forçando o ID a ser tratado como string no objeto de busca
+           
             const [linhasAfetadas] = await Capitulo.update(
                 { numero, titulo }, 
                 { where: { id: String(id) } }

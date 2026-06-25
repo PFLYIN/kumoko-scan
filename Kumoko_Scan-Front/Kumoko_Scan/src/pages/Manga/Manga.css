@@ -1,6 +1,13 @@
+.catalog-main {
+    min-height: 100vh;
+    background: linear-gradient(180deg, rgba(15, 17, 26, 0.98) 0%, rgba(15, 17, 26, 0.95) 100%);
+    padding-top: 30px;
+    padding-bottom: 50px;
+}
+
 .container-catalogo {
     max-width: 1200px;
-    margin: 50px auto;
+    margin: 0 auto;
     padding: 0 20px;
     color: #e2e8f0;
 }
