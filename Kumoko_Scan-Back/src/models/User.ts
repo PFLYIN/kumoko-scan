@@ -7,6 +7,7 @@ export class User extends Model {
   declare email: string;
   declare cpf: string;
   declare senha: string;
+  declare is_admin: boolean; // Adicionado aqui
 }
 
 User.init(
@@ -16,12 +17,13 @@ User.init(
     email: { type: DataTypes.STRING, allowNull: false, unique: true },
     cpf: { type: DataTypes.STRING, allowNull: false, unique: true },
     senha: { type: DataTypes.STRING, allowNull: false },
+    is_admin: { type: DataTypes.BOOLEAN, defaultValue: false }, // Adicionado aqui
   },
-  { 
-    sequelize, // Passa a instância validada
+  {
+    sequelize,
     modelName: 'User',
-    tableName: 'usuarios', // Força a bater na tabela exata do seu escopo SQL
-    timestamps: false
+    tableName: 'usuarios',
+    timestamps: false,
   }
 );
 

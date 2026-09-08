@@ -14,14 +14,22 @@ class AuthController {
       const senhaValida = await bcrypt.compare(senha, user.senha);
       if (!senhaValida) return res.status(401).json({ error: 'Senha incorreta!' });
 
-      // 🎯 CORREÇÃO: Puxando o segredo do .env de forma dinâmica
+      // 🎯 Injetamos o is_admin dentro do Token para rotas protegidas futuras
       const secret = process.env.JWT_SECRET || 'KUMOKO_SECRET';
-      const token = jwt.sign({ id: user.id }, secret, { expiresIn: '1d' });
+      const token = jwt.sign(
+        { id: user.id, is_admin: user.is_admin }, 
+        secret, 
+        { expiresIn: '1d' }
+      );
 
       return res.status(200).json({ 
         message: 'Login com sucesso',
         token, 
-        user: { nome: user.nome, email: user.email } 
+        user: { 
+          nome: user.nome, 
+          email: user.email,
+          is_admin: user.is_admin // 🎯 Passando a flag para o App Mobile
+        } 
       });
     } catch (error) {
       return res.status(500).json({ error: 'Erro interno no login.' });

@@ -1,11 +1,10 @@
 services:
-  # 🗄️ Serviço 1: O Banco de Dados MySQL/MariaDB
   database:
     image: mariadb:10.6
     container_name: kumoko_db
     restart: always
     ports:
-      - "3306:3306" # Mantido para você usar o DBeaver localmente
+      - "3306:3306"
     env_file:
       - .env
     environment:
@@ -19,7 +18,7 @@ services:
     networks:
       - kumoko_network
 
-  # 🟢 Serviço 2: O Backend (Sem portas expostas diretamente)
+
   backend:
     build: ./Kumoko_Scan-Back
     container_name: kumoko_backend
@@ -33,6 +32,8 @@ services:
       DB_NAME: ${DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
       PORT: 3000
+    ports:
+      - "3000:3000"
     volumes:
       - ./Kumoko_Scan-Back:/usr/src/app
       - /usr/src/app/node_modules
@@ -41,7 +42,7 @@ services:
     depends_on:
       - database
 
-  # 🔵 Serviço 3: O Frontend (Sem portas expostas diretamente)
+
   frontend:
     build: ./Kumoko_Scan-Front/Kumoko_Scan
     container_name: kumoko_frontend
@@ -52,7 +53,7 @@ services:
     networks:
       - kumoko_network
 
-  # 🛡️ Serviço 4: O Proxy Reverso Nginx (Único exposto para a Web)
+
   proxy:
     image: nginx:alpine
     container_name: kumoko_proxy
@@ -61,7 +62,6 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      # 👇 CORREÇÃO AQUI: Mapeando a pasta inteira onde está o seu default.conf
       - ./nginx:/etc/nginx/conf.d:ro
       - ./nginx/certs:/etc/nginx/certs:ro
     networks:

@@ -1,27 +1,4 @@
--- MariaDB dump 10.19  Distrib 10.4.32-MariaDB, for Win64 (AMD64)
---
--- Host: localhost    Database: kumoko_scan
--- ------------------------------------------------------
--- Server version	10.4.32-MariaDB
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
-/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
-/*!40103 SET TIME_ZONE='+00:00' */;
-/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
-/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
-/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-
---
--- Table structure for table `capitulos`
---
-
 DROP TABLE IF EXISTS `capitulos`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `capitulos` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `manga_id` int(11) NOT NULL,
@@ -31,50 +8,28 @@ CREATE TABLE `capitulos` (
   KEY `manga_id` (`manga_id`),
   CONSTRAINT `capitulos_ibfk_1` FOREIGN KEY (`manga_id`) REFERENCES `mangas` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `capitulos`
---
 
 LOCK TABLES `capitulos` WRITE;
-/*!40000 ALTER TABLE `capitulos` DISABLE KEYS */;
 INSERT INTO `capitulos` VALUES (4,5,0.00,''),(5,5,0.00,''),(6,5,1.00,'sério isso?!');
-/*!40000 ALTER TABLE `capitulos` ENABLE KEYS */;
 UNLOCK TABLES;
 
---
--- Table structure for table `livros`
---
 
 DROP TABLE IF EXISTS `livros`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `livros` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nome` varchar(255) NOT NULL,
   `capa_url` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `livros`
---
 
 LOCK TABLES `livros` WRITE;
-/*!40000 ALTER TABLE `livros` DISABLE KEYS */;
 INSERT INTO `livros` VALUES (1,'NFS','C:\\Kumoko_Scan-Back\\uploads\\covers\\cover-bb4405820aed9024784c5663006ea8e9-1776034001974.png'),(2,'sem segredo','C:\\Kumoko_Scan-Back\\uploads\\covers\\cover-493d917b2a02f6d25a779e39992e0629-1776048681212.jpg');
-/*!40000 ALTER TABLE `livros` ENABLE KEYS */;
 UNLOCK TABLES;
 
---
--- Table structure for table `mangas`
---
 
 DROP TABLE IF EXISTS `mangas`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `mangas` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `nome` varchar(255) NOT NULL,
