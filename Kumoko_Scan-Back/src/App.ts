@@ -9,6 +9,8 @@ import uploadRoutes from './routes/upload';
 import mangaRoutes from './routes/manga';
 import capituloRoutes from './routes/capitulo';
 import authRoutes from './routes/auth';
+import novelRoutes from './routes/novel';
+import compraRoutes from './routes/compra';
 
 class App {
   public server: express.Application;
@@ -40,6 +42,8 @@ class App {
     this.server.use('/mangas', mangaRoutes);      // Transforma o router.get('/') em GET /mangas
     this.server.use('/capitulos', capituloRoutes);  // Transforma as rotas em GET/POST /capitulos
     this.server.use('/livros', livroRoutes);      // Transforma as rotas em GET/POST /livros
+    this.server.use('/novels', novelRoutes);
+    this.server.use('/compras', compraRoutes);
   }
 }
 

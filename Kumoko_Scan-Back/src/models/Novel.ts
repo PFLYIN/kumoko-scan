@@ -1,28 +1,26 @@
 import { DataTypes, Model } from 'sequelize';
 import db from '../config/database';
 
-class Manga extends Model {
+class Novel extends Model {
   declare id: number;
   declare nome: string;
-  declare volume: number;
   declare capa_url: string;
   declare preco: number;
   declare descricao: string;
   declare avaliacao: number;
 }
 
-Manga.init({
+Novel.init({
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
   nome: { type: DataTypes.STRING(255), allowNull: false },
-  volume: { type: DataTypes.INTEGER, allowNull: true },
   capa_url: { type: DataTypes.STRING(255), allowNull: true },
   preco: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0.00 },
   descricao: { type: DataTypes.TEXT, allowNull: true },
   avaliacao: { type: DataTypes.DECIMAL(2, 1), defaultValue: 5.0 }
 }, {
   sequelize: db,
-  tableName: 'mangas',
+  tableName: 'novels',
   timestamps: false
 });
 
-export default Manga;
+export default Novel;

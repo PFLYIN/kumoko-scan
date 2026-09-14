@@ -14,10 +14,10 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD}
     volumes:
       - mariadb_data:/var/lib/mysql
+      # O backup inicial com a criação das tabelas continua aqui
       - ./backup_banco.sql:/docker-entrypoint-initdb.d/backup_banco.sql
     networks:
       - kumoko_network
-
 
   backend:
     build: ./Kumoko_Scan-Back
@@ -33,7 +33,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       PORT: 3000
     ports:
-      - "3000:3000"
+      - "3000:3000" # 🎯 A porta escancarada pro seu emulador e celular acessar
     volumes:
       - ./Kumoko_Scan-Back:/usr/src/app
       - /usr/src/app/node_modules
@@ -41,34 +41,6 @@ services:
       - kumoko_network
     depends_on:
       - database
-
-
-  frontend:
-    build: ./Kumoko_Scan-Front/Kumoko_Scan
-    container_name: kumoko_frontend
-    restart: always
-    volumes:
-      - ./Kumoko_Scan-Front/Kumoko_Scan:/usr/src/app
-      - /usr/src/app/node_modules
-    networks:
-      - kumoko_network
-
-
-  proxy:
-    image: nginx:alpine
-    container_name: kumoko_proxy
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx:/etc/nginx/conf.d:ro
-      - ./nginx/certs:/etc/nginx/certs:ro
-    networks:
-      - kumoko_network
-    depends_on:
-      - frontend
-      - backend
 
 networks:
   kumoko_network:

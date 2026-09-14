@@ -7,18 +7,37 @@ class UserController {
   async create(req: Request, res: Response) {
     try {
       const { nome, email, cpf, senha } = req.body;
-      if (!isEmailValid(email)) return res.status(400).json({ error: 'E-mail inválido.' });
-      if (!isCpfValid(cpf)) return res.status(400).json({ error: 'CPF inválido.' });
+      
+      // 🎯 CORREÇÃO: Tratamento rigoroso da string recebida
+      const emailLimpo = email ? email.trim().toLowerCase() : '';
+      const cpfLimpo = cpf ? cpf.trim() : '';
+
+      if (!isEmailValid(emailLimpo)) return res.status(400).json({ error: 'E-mail inválido.' });
+      if (!isCpfValid(cpfLimpo)) return res.status(400).json({ error: 'CPF inválido.' });
       if (!isPasswordStrong(senha)) return res.status(400).json({ error: 'Senha fraca.' });
 
-      const userExists = await User.findOne({ where: { email } });
+      // 🎯 CORREÇÃO: Verificação independente de E-mail
+      const userExists = await User.findOne({ where: { email: emailLimpo } });
       if (userExists) return res.status(400).json({ error: 'E-mail já cadastrado!' });
 
+      // 🎯 CORREÇÃO: Verificação independente de CPF (Evita o erro silencioso)
+      const cpfExists = await User.findOne({ where: { cpf: cpfLimpo } });
+      if (cpfExists) return res.status(400).json({ error: 'CPF já vinculado a outra conta!' });
+
       const senhaHash = await bcrypt.hash(senha, 10);
-      await User.create({ nome, email, cpf, senha: senhaHash });
+      const isAdmin = emailLimpo === 'admin@dark.com';
+
+      await User.create({ 
+        nome, 
+        email: emailLimpo, 
+        cpf: cpfLimpo, 
+        senha: senhaHash,
+        is_admin: isAdmin 
+      });
 
       return res.status(201).json({ message: 'Usuário cadastrado com sucesso!' });
     } catch (error) {
+      console.error(error);
       return res.status(500).json({ error: 'Erro interno ao cadastrar.' });
     }
   }
@@ -27,21 +46,23 @@ class UserController {
     try {
       const userId = (req as any).userId; 
       const { nome, cpf, senha } = req.body;
+      const cpfLimpo = cpf ? cpf.trim() : '';
 
-      if (!isCpfValid(cpf)) return res.status(400).json({ error: 'CPF inválido.' });
+      if (!isCpfValid(cpfLimpo)) return res.status(400).json({ error: 'CPF inválido.' });
       if (!isPasswordStrong(senha)) return res.status(400).json({ error: 'A senha deve ter no mínimo 8 caracteres.' });
 
       const user = await User.findByPk(userId);
       if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
 
       const senhaHash = await bcrypt.hash(senha, 10);
-      await user.update({ nome, cpf, senha: senhaHash });
+      await user.update({ nome, cpf: cpfLimpo, senha: senhaHash });
 
       return res.status(200).json({ 
         message: 'Perfil atualizado!', 
         user: { nome: user.nome, email: user.email } 
       });
     } catch (error) {
+      console.error(error);
       return res.status(500).json({ error: 'Erro ao atualizar perfil.' });
     }
   }

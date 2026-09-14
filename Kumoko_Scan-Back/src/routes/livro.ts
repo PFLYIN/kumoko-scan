@@ -1,15 +1,16 @@
 import { Router } from 'express';
 import { uploadCover } from '../config/multer';
 import LivroController from '../controllers/LivroController';
+import { authMiddleware } from '../middlewares/auth'; // 🎯 Adicionado proteção
 
 const router = Router();
 
-router.post('/', uploadCover.single('cover_image'), LivroController.create);
+// 🎯 CORREÇÃO: Trocado 'cover_image' por 'capa' para bater com o Mobile
+router.post('/', authMiddleware, uploadCover.single('capa'), LivroController.create);
 router.get('/', LivroController.list);
 
-// 🎯 As duas rotas novas para fechar o CRUD Completo
-router.put('/:id', LivroController.update);
-router.delete('/:id', LivroController.delete);
+router.put('/:id', authMiddleware, LivroController.update);
+router.delete('/:id', authMiddleware, LivroController.delete);
 router.get('/:id', LivroController.getById);
 
 export default router;
