@@ -1,3 +1,6 @@
+
+
+
 # Kumoko Scan - E-commerce e Acervo de Obras
 
 ## Contextualização do Problema e Evolução do Produto
@@ -103,3 +106,47 @@ erDiagram
         int numero_pagina
         string imagem_url
     }
+
+activityDiagram
+    autonumber
+    start
+    :Acessar Carrinho;
+    if "Usuario Autenticado?" then
+      -> [Nao] :Fazer Login / Cadastro;
+      :Retornar ao Carrinho;
+      -> [Sim] :Visualizar Itens e Total;
+    endif
+    :Clica em Finalizar Compra;
+    :Enviar dados para a API (/compras/finalizar);
+    if "Backend Valida JWT e Precos?" then
+      -> [Falha] :Exibir Alerta de Erro;
+      :Tentar Novamente;
+      -> [Sucesso] :Registrar Transacao no Banco;
+      :Atualizar total_gasto do Usuario;
+      :Limpar Carrinho Global;
+      :Exibir Confirmacao de Sucesso;
+      :Disponibilizar no Historico;
+    endif
+    stop
+
+    graph LR
+    classDef actor fill:#111,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef usecase fill:#222,stroke:#555,stroke-width:1px,color:#fff;
+
+    Cliente((Cliente)):::actor
+
+    subgraph "Kumoko Scan - E-commerce"
+        UC1[Pesquisar Mangás, Livros e Novels]:::usecase
+        UC2[Adicionar ao Carrinho]:::usecase
+        UC3[Fazer Login]:::usecase
+        UC4[Finalizar Compra]:::usecase
+        UC5[Consultar Histórico de Leitura]:::usecase
+    end
+
+    Cliente --> UC1
+    Cliente --> UC2
+    Cliente --> UC4
+    Cliente --> UC5
+
+    UC4 -. "include" .-> UC3
+    UC2 -. "include" .-> UC3
