@@ -216,7 +216,6 @@ sequenceDiagram
         Cliente->>Cliente: Redireciona para Home
     end
 Adição ao Carrinho e Busca de Produtos
-Snippet de código
 sequenceDiagram
     autonumber
     actor Cliente as App Mobile
