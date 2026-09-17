@@ -13,6 +13,7 @@ import Catalogo from '../screens/Catalogo';
 import DetalhesProduto from '../screens/DetalhesProduto';
 import HistoricoCompras from '../screens/HistoricoCompras';
 import Configuracoes from '../screens/Configuracoes';
+import GerenciarAcervo from '../screens/GerenciarAcervo';
 
 import { colors } from '../theme/colors';
 
@@ -24,28 +25,31 @@ function TabRoutes() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size }) => {
+        tabBarIcon: ({ color, focused }) => {
           let iconName;
-          if (route.name === 'Galeria') iconName = 'book';
-          else if (route.name === 'Carrinho') iconName = 'cart';
-          else if (route.name === 'Perfil') iconName = 'person';
+          if (route.name === 'Galeria') iconName = focused ? 'book' : 'book-outline';
+          else if (route.name === 'Carrinho') iconName = focused ? 'cart' : 'cart-outline';
+          else if (route.name === 'Perfil') iconName = focused ? 'person' : 'person-outline';
           
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <Ionicons name={iconName as any} size={22} color={color} />;
         },
-        tabBarActiveTintColor: '#8B0000', // Destaque Carmesim nas abas
+        tabBarActiveTintColor: colors.primaryBright,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
-          backgroundColor: colors.surface,
+          backgroundColor: colors.surfaceMuted,
           borderTopColor: colors.border,
-          paddingBottom: 5,
-          height: 60,
+          paddingTop: 8,
+          paddingBottom: 8,
+          height: 68,
         },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarItemStyle: { borderRadius: 12, marginHorizontal: 8 },
         headerStyle: { backgroundColor: colors.surface },
         headerTintColor: colors.primary,
         headerShadowVisible: false,
       })}
     >
-      <Tab.Screen name="Galeria" component={Home} options={{ title: 'Chorus of Sin' }} />
+      <Tab.Screen name="Galeria" component={Home} options={{ title: 'Kumoko' }} />
       <Tab.Screen name="Carrinho" component={Carrinho} />
       <Tab.Screen name="Perfil" component={Perfil} /> 
     </Tab.Navigator>
@@ -69,6 +73,7 @@ export function AppRoutes() {
       <Stack.Screen name="DetalhesProduto" component={DetalhesProduto} />
       <Stack.Screen name="HistoricoCompras" component={HistoricoCompras} />
       <Stack.Screen name="Configuracoes" component={Configuracoes} />
+      <Stack.Screen name="GerenciarAcervo" component={GerenciarAcervo} />
       
     </Stack.Navigator>
   );

@@ -83,7 +83,7 @@ export default function Login() {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         <View style={styles.formContainer}>
-          <Text style={styles.logoText}>DARK<Text style={styles.logoHighlight}>SIDE</Text></Text>
+          <Text style={styles.logoText}>KUMOKO</Text>
           <Text style={styles.subtitle}>
             {isLogin ? 'Entre para acessar o acervo sombrio' : 'Junte-se às sombras'}
           </Text>
@@ -171,14 +171,14 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   scrollContainer: { flexGrow: 1, justifyContent: 'center' },
-  formContainer: { paddingHorizontal: 30 },
-  logoText: { fontSize: 32, fontWeight: 'bold', color: colors.text, textAlign: 'center', letterSpacing: 4, marginTop: 40 },
+  formContainer: { paddingHorizontal: 24 },
+  logoText: { fontSize: 36, fontWeight: '800', color: colors.text, textAlign: 'center', letterSpacing: 4, marginTop: 40 },
   logoHighlight: { color: colors.primary },
-  subtitle: { color: colors.textSecondary, textAlign: 'center', marginBottom: 20, fontSize: 14 },
+  subtitle: { color: colors.textSecondary, textAlign: 'center', marginBottom: 26, fontSize: 14 },
   avatarContainer: { alignItems: 'center', marginBottom: 30 },
-  avatarCircle: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#1A1A1A', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: colors.border },
-  input: { backgroundColor: colors.surface, color: colors.text, height: 50, borderRadius: 8, paddingHorizontal: 15, marginBottom: 15, borderWidth: 1, borderColor: colors.border },
-  button: { backgroundColor: colors.primary, height: 50, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginTop: 10 },
+  avatarCircle: { width: 108, height: 108, borderRadius: 54, backgroundColor: colors.primarySoft, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.primary },
+  input: { backgroundColor: colors.surface, color: colors.text, height: 54, borderRadius: 14, paddingHorizontal: 17, marginBottom: 13, borderWidth: 1, borderColor: colors.border },
+  button: { backgroundColor: colors.primaryBright, height: 54, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginTop: 10 },
   buttonText: { color: colors.text, fontSize: 16, fontWeight: 'bold', letterSpacing: 1 },
   toggleButton: { marginTop: 20, alignItems: 'center', marginBottom: 40 },
   toggleButtonText: { color: colors.textSecondary, fontSize: 14, textDecorationLine: 'underline' }

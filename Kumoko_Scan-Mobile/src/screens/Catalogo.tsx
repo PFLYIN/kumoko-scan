@@ -64,10 +64,15 @@ export default function Catalogo() {
             </View>
           )}
         </View>
-        <Text style={styles.cardTitle} numberOfLines={1}>{item.nome}</Text>
-        <View style={styles.ratingContainer}>
-          <Ionicons name="star" size={12} color="#FFD700" />
-          <Text style={styles.ratingText}>{item.avaliacao || '5.0'}</Text>
+        <View style={styles.cardInfo}>
+          <Text style={styles.cardTitle} numberOfLines={2}>{item.nome}</Text>
+          <View style={styles.metaRow}>
+            <View style={styles.ratingContainer}>
+              <Ionicons name="star" size={12} color={colors.accent} />
+              <Text style={styles.ratingText}>{item.avaliacao || '5.0'}</Text>
+            </View>
+            {item.preco && <Text style={styles.priceText}>R$ {Number(item.preco).toFixed(2).replace('.', ',')}</Text>}
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -79,12 +84,15 @@ export default function Catalogo() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Catálogo de {tipo}</Text>
+        <View style={styles.headerCopy}>
+          <Text style={styles.headerKicker}>KUMOKO SCAN</Text>
+          <Text style={styles.headerTitle}>Catálogo de {tipo}</Text>
+        </View>
         <View style={{ width: 24 }} />
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#8B0000" style={{ marginTop: 50 }} />
+          <ActivityIndicator size="large" color={colors.primaryBright} style={{ marginTop: 50 }} />
       ) : (
         <FlatList
           data={produtos}
@@ -101,18 +109,23 @@ export default function Catalogo() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 40, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
-  backButton: { padding: 5 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text, textTransform: 'capitalize' },
-  listContainer: { padding: 15 },
-  row: { justifyContent: 'space-between', marginBottom: 20 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 48, backgroundColor: colors.surfaceMuted, borderBottomWidth: 1, borderBottomColor: colors.border },
+  backButton: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  headerCopy: { alignItems: 'center' },
+  headerKicker: { color: colors.primaryBright, fontSize: 9, fontWeight: '800', letterSpacing: 1.5, marginBottom: 3 },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: colors.text, textTransform: 'capitalize' },
+  listContainer: { padding: 16 },
+  row: { justifyContent: 'space-between', marginBottom: 24 },
   card: { width: '47%' },
-  imageContainer: { width: '100%', height: 230, borderRadius: 8, backgroundColor: colors.surface, overflow: 'hidden', marginBottom: 8 },
+  imageContainer: { width: '100%', height: 230, borderRadius: 14, backgroundColor: colors.surface, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
   capaImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   imagePlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  tag: { position: 'absolute', top: 8, left: 8, backgroundColor: '#FFD700', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  tag: { position: 'absolute', top: 10, left: 10, backgroundColor: colors.accent, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   tagText: { color: '#000', fontSize: 10, fontWeight: 'bold' },
-  cardTitle: { color: colors.text, fontSize: 14, fontWeight: 'bold' },
-  ratingContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  cardInfo: { padding: 11, paddingTop: 10, backgroundColor: colors.surface, borderBottomLeftRadius: 14, borderBottomRightRadius: 14, borderWidth: 1, borderTopWidth: 0, borderColor: colors.border, minHeight: 78 },
+  cardTitle: { color: colors.text, fontSize: 14, lineHeight: 18, fontWeight: '800' },
+  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 9 },
+  ratingContainer: { flexDirection: 'row', alignItems: 'center' },
   ratingText: { color: colors.textSecondary, fontSize: 12, marginLeft: 4 },
+  priceText: { color: colors.text, fontSize: 12, fontWeight: '800' },
 });

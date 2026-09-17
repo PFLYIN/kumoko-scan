@@ -61,7 +61,7 @@ export default function Perfil() {
       <View style={styles.header}>
         <View style={styles.avatarCircle}>
           <Ionicons 
-            name={isAdmin ? "star" : "person"} // 🎯 CORREÇÃO: "crown" trocado para "star"
+            name={isAdmin ? "star" : "person"}
             size={45} 
             color={isAdmin ? "#FFD700" : colors.textSecondary} 
           />
@@ -107,6 +107,13 @@ export default function Perfil() {
           <Text style={[styles.sectionTitle, { color: '#8B0000' }]}>Painel de Controle</Text>
           <View style={styles.menuCard}>
             <MenuItem 
+              icon="list-outline" 
+              title="Gerenciar Acervo" 
+              subtitle="Editar ou excluir obras cadastradas" 
+              onPress={() => navigation.navigate('GerenciarAcervo')}
+              color="#FF6B6B"
+            />
+            <MenuItem 
               icon="library" 
               title="Adicionar Mangá" 
               subtitle="Cadastrar novo mangá na loja" 
@@ -140,22 +147,22 @@ export default function Perfil() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: { alignItems: 'center', paddingVertical: 40, borderBottomWidth: 1, borderBottomColor: colors.surface },
-  avatarCircle: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#1A1A1A', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: colors.border, marginBottom: 15 },
-  userName: { fontSize: 22, fontWeight: 'bold', color: colors.text, marginBottom: 5 },
+  header: { alignItems: 'center', paddingVertical: 36, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: colors.border },
+  avatarCircle: { width: 104, height: 104, borderRadius: 52, backgroundColor: colors.primarySoft, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.primary, marginBottom: 15 },
+  userName: { fontSize: 24, fontWeight: '800', color: colors.text, marginBottom: 5 },
   userEmail: { fontSize: 14, color: colors.textSecondary, marginBottom: 15 },
-  badge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, marginBottom: 15 },
-  badgeAdmin: { backgroundColor: 'rgba(255, 215, 0, 0.1)', borderWidth: 1, borderColor: '#FFD700' },
-  badgeUser: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  badge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginBottom: 15 },
+  badgeAdmin: { backgroundColor: 'rgba(244, 208, 63, 0.1)', borderWidth: 1, borderColor: colors.accent },
+  badgeUser: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderStrong },
   badgeText: { fontSize: 10, fontWeight: 'bold', color: colors.text, letterSpacing: 1 },
-  gastoContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 10, padding: 8, backgroundColor: '#1A1A1A', borderRadius: 8, borderWidth: 1, borderColor: colors.border },
+  gastoContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.surfaceMuted, borderRadius: 12, borderWidth: 1, borderColor: colors.border },
   gastoText: { color: colors.textSecondary, fontSize: 12, marginLeft: 8 },
   gastoValue: { color: '#4CAF50', fontWeight: 'bold' },
   section: { paddingHorizontal: 20, paddingTop: 25 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: colors.textSecondary, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 },
-  menuCard: { backgroundColor: colors.surface, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
-  menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 15, borderBottomWidth: 1, borderBottomColor: colors.border },
-  menuIconContainer: { width: 40, alignItems: 'center' },
+  sectionTitle: { fontSize: 13, fontWeight: '800', color: colors.textSecondary, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1.5 },
+  menuCard: { backgroundColor: colors.surface, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
+  menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 17, paddingHorizontal: 15, borderBottomWidth: 1, borderBottomColor: colors.border },
+  menuIconContainer: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   menuTextContainer: { flex: 1 },
   menuTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 2, color: colors.text },
   menuSubtitle: { fontSize: 12, color: colors.textSecondary },
