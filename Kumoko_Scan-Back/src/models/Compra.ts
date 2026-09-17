@@ -7,6 +7,8 @@ class Compra extends Model {
   declare produto_id: number;
   declare tipo_produto: string;
   declare preco_pago: number;
+  declare createdAt: Date;
+  declare updatedAt: Date;
 }
 
 Compra.init({
@@ -18,7 +20,7 @@ Compra.init({
 }, {
   sequelize: db,
   tableName: 'compras',
-  timestamps: false // O MariaDB já gerencia o data_compra nativamente via TIMESTAMP
+  timestamps: true // 🎯 AGORA É TRUE: O histórico não terá mais datas vazias!
 });
 
 export default Compra;

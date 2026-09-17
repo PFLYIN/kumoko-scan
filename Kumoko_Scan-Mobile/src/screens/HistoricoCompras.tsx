@@ -2,32 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import * as SecureStore from 'expo-secure-store';
 import { colors } from '../theme/colors';
 import { api } from '../service/api';
 
-// MOCK: Visualização temporária até o backend trazer os nomes unidos com a tabela de produtos
-const MOCK_HISTORICO = [
-  { id: '1', nome: 'A Esposa do Meu Marido + Brindes', preco_pago: 79.92, data_compra: '2026-09-12T14:30:00Z', tipo_produto: 'livro' },
-  { id: '2', nome: 'Solo Leveling Vol. 1', preco_pago: 34.90, data_compra: '2026-09-10T09:15:00Z', tipo_produto: 'manga' }
-];
-
 export default function HistoricoCompras() {
   const navigation = useNavigation();
-  const [compras, setCompras] = useState(MOCK_HISTORICO);
-  const [loading, setLoading] = useState(false); // Mude para true quando plugar a API real
+  const [compras, setCompras] = useState([]);
+  const [loading, setLoading] = useState(true); 
 
-  /* 
-  // 🔌 CÓDIGO DA API (Descomente quando a rota do backend estiver pronta)
+  // 🎯 AGORA É REAL: Busca as compras no seu backend
   useEffect(() => {
     const buscarHistorico = async () => {
       try {
-        const usuarioString = await SecureStore.getItemAsync('usuario');
-        if (usuarioString) {
-          const user = JSON.parse(usuarioString);
-          const resposta = await api.get(`/compras/historico/${user.id}`);
-          setCompras(resposta.data);
-        }
+        setLoading(true);
+        // O backend agora puxa o id sozinho através do token JWT
+        const resposta = await api.get('/compras/historico');
+        setCompras(resposta.data);
       } catch (error) {
         console.error("Erro ao buscar histórico", error);
       } finally {
@@ -36,9 +26,9 @@ export default function HistoricoCompras() {
     };
     buscarHistorico();
   }, []);
-  */
 
   const formatarData = (dataIso: string) => {
+    if (!dataIso) return '--/--/----';
     const data = new Date(dataIso);
     return data.toLocaleDateString('pt-BR');
   };
@@ -46,7 +36,7 @@ export default function HistoricoCompras() {
   const getIconeProduto = (tipo: string) => {
     if (tipo === 'manga') return 'color-palette-outline';
     if (tipo === 'novel') return 'document-text-outline';
-    return 'book-outline'; // livro
+    return 'book-outline'; 
   };
 
   const renderItem = ({ item }: any) => (
@@ -55,9 +45,10 @@ export default function HistoricoCompras() {
         <Ionicons name={getIconeProduto(item.tipo_produto)} size={28} color={colors.primary} />
       </View>
       <View style={styles.infoContainer}>
-        <Text style={styles.title} numberOfLines={1}>{item.nome}</Text>
-        <Text style={styles.typeText}>Tipo: {item.tipo_produto.toUpperCase()}</Text>
-        <Text style={styles.dateText}>Adquirido em: {formatarData(item.data_compra)}</Text>
+        {/* Usando o ID do produto provisoriamente até implementarmos um JOIN no backend para trazer o nome real */}
+        <Text style={styles.title} numberOfLines={1}>Cód. Obra: {item.produto_id}</Text>
+        <Text style={styles.typeText}>Tipo: {item.tipo_produto ? item.tipo_produto.toUpperCase() : 'DESCONHECIDO'}</Text>
+        <Text style={styles.dateText}>Adquirido em: {formatarData(item.createdAt)}</Text>
       </View>
       <View style={styles.priceContainer}>
         <Text style={styles.priceText}>R$ {parseFloat(item.preco_pago).toFixed(2).replace('.', ',')}</Text>
@@ -86,7 +77,7 @@ export default function HistoricoCompras() {
       ) : (
         <FlatList
           data={compras}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item: any) => item.id.toString()}
           renderItem={renderItem}
           contentContainerStyle={styles.listContainer}
         />

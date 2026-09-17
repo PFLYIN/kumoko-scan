@@ -4,12 +4,18 @@ import Livro from '../models/Livro';
 class LivroController {
   public async create(req: Request, res: Response) {
     try {
-      const { nome } = req.body;
+      const { nome, preco, descricao, avaliacao } = req.body;
       if (!nome) return res.status(400).json({ error: 'Nome é obrigatório.' });
 
-      const capa_url = req.file ? req.file.path : null;
+      const capa_url = req.file ? `/files/covers/${req.file.filename}` : null;
 
-      const novoLivro = await Livro.create({ nome, capa_url });
+      const novoLivro = await Livro.create({ 
+        nome, 
+        preco: preco ? parseFloat(preco) : 0.00,
+        descricao: descricao || '',
+        avaliacao: avaliacao ? parseFloat(avaliacao) : 5.0,
+        capa_url 
+      });
       return res.status(201).json(novoLivro);
     } catch (error) {
       return res.status(500).json({ error: 'Erro ao criar livro.' });
@@ -25,24 +31,27 @@ class LivroController {
     }
   }
 
-  // 🎯 NOVO: Método para Editar (PUT)
   public async update(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { nome } = req.body;
+      const { nome, preco, descricao, avaliacao } = req.body;
 
-      // 🎯 Correção do TypeScript: Garantindo que o id é uma string única
       const livro = await Livro.findByPk(id as string);
       if (!livro) return res.status(404).json({ error: 'Livro não encontrado.' });
 
-      await livro.update({ nome });
+      await livro.update({ 
+        nome,
+        preco: preco ? parseFloat(preco) : 0.00,
+        descricao: descricao || '',
+        avaliacao: avaliacao ? parseFloat(avaliacao) : 5.0
+      });
+      
       return res.status(200).json(livro);
     } catch (error) {
       return res.status(500).json({ error: 'Erro ao atualizar livro.' });
     }
   }
 
-  // 🎯 NOVO: Buscar um único livro pelo ID (Usado na tela de Editar)
   public async getById(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -55,13 +64,11 @@ class LivroController {
     }
   }
 
-  // 🎯 NOVO: Método para Excluir (DELETE)
   public async delete(req: Request, res: Response) {
     try {
       const { id } = req.params;
-
-      // 🎯 Correção do TypeScript: Garantindo que o id é uma string única
       const livro = await Livro.findByPk(id as string);
+      
       if (!livro) return res.status(404).json({ error: 'Livro não encontrado.' });
 
       await livro.destroy();

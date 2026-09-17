@@ -1,85 +1,90 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert, ActivityIndicator, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { colors } from '../theme/colors';
+import { api } from '../service/api';
+import { useCart } from '../contexts/CartContext'; // 🎯 Conexão com o Contexto Global
 
-const MOCK_CARRINHO = [
-  { id: '1', nome: 'A Esposa do Meu Marido + Brindes', preco: 79.92, quantidade: 1, capa_url: null },
-  { id: '2', nome: 'Solo Leveling Vol. 1', preco: 34.90, quantidade: 2, capa_url: null }
-];
+const getBaseUrl = () => {
+  if (Platform.OS === 'android' && !Constants.expoConfig?.hostUri) return 'http://10.0.2.2:3000';
+  const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
+  return `http://${debuggerHost ? debuggerHost.split(':')[0] : 'localhost'}:3000`;
+};
 
 export default function Carrinho() {
-  const [itens, setItens] = useState(MOCK_CARRINHO);
+  // 🎯 Substituímos o state local pelas variáveis e métodos do Contexto Global
+  const { cart, updateQuantity, removeFromCart, clearCart, getCartTotal } = useCart();
   const [processando, setProcessando] = useState(false);
   const navigation = useNavigation<any>();
 
-  const calcularTotal = () => {
-    return itens.reduce((total, item) => total + (item.preco * item.quantidade), 0).toFixed(2);
-  };
-
-  const alterarQuantidade = (id: string, operacao: 'somar' | 'subtrair') => {
-    setItens(itens.map(item => {
-      if (item.id === id) {
-        const novaQtd = operacao === 'somar' ? item.quantidade + 1 : item.quantidade - 1;
-        return { ...item, quantidade: Math.max(1, novaQtd) };
-      }
-      return item;
-    }));
-  };
-
-  const removerItem = (id: string) => {
-    setItens(itens.filter(item => item.id !== id));
-  };
-
-  // Função que simula a transação e o envio para o banco de dados
-  const finalizarCompra = () => {
-    if (itens.length === 0) return;
+  const finalizarCompra = async () => {
+    if (cart.length === 0) return;
     
     setProcessando(true);
 
-    setTimeout(() => {
-      setProcessando(false);
-      setItens([]); 
+    try {
+      await api.post('/compras/finalizar', { 
+        produtos: cart, 
+        total: getCartTotal()
+      });
+
+      clearCart(); // 🎯 Limpa o carrinho global após finalizar
       
       Alert.alert(
         'Pagamento Aprovado!',
         'Compra finalizada com sucesso. As obras já estão disponíveis no seu Histórico de Leitura!',
-        [{ text: 'Continuar Explorando', onPress: () => navigation.navigate('Galeria') }]
+        [{ text: 'Ver Histórico', onPress: () => navigation.navigate('HistoricoCompras') }]
       );
-    }, 2000); // 2 segundos de simulação de processamento
+    } catch (error: any) {
+      console.error(error);
+      Alert.alert('Erro', 'Falha ao processar o pagamento no servidor.');
+    } finally {
+      setProcessando(false);
+    }
   };
 
-  const renderItem = ({ item }: any) => (
-    <View style={styles.cartItem}>
-      <View style={styles.imageContainer}>
-        {item.capa_url ? (
-          <Image source={{ uri: item.capa_url }} style={styles.capaImage} />
-        ) : (
-          <Ionicons name="book-outline" size={30} color={colors.border} />
-        )}
-      </View>
-      
-      <View style={styles.itemDetails}>
-        <Text style={styles.itemTitle} numberOfLines={2}>{item.nome}</Text>
-        <Text style={styles.itemPrice}>R$ {item.preco.toFixed(2).replace('.', ',')}</Text>
-        
-        <View style={styles.quantityControl}>
-          <TouchableOpacity onPress={() => alterarQuantidade(item.id, 'subtrair')} style={styles.qtdBtn}>
-            <Ionicons name="remove" size={16} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={styles.qtdText}>{item.quantidade}</Text>
-          <TouchableOpacity onPress={() => alterarQuantidade(item.id, 'somar')} style={styles.qtdBtn}>
-            <Ionicons name="add" size={16} color={colors.text} />
-          </TouchableOpacity>
-        </View>
-      </View>
+  const formatImageUrl = (urlDoBanco: string) => {
+    if (!urlDoBanco) return null;
+    const fileName = urlDoBanco.split('\\').pop()?.split('/').pop();
+    return `${getBaseUrl()}/files/covers/${fileName}`;
+  };
 
-      <TouchableOpacity style={styles.deleteBtn} onPress={() => removerItem(item.id)}>
-        <Ionicons name="trash-outline" size={22} color="#FF6B6B" />
-      </TouchableOpacity>
-    </View>
-  );
+  const renderItem = ({ item }: any) => {
+    const imagemUri = formatImageUrl(item.capa_url);
+
+    return (
+      <View style={styles.cartItem}>
+        <View style={styles.imageContainer}>
+          {imagemUri ? (
+            <Image source={{ uri: imagemUri }} style={styles.capaImage} />
+          ) : (
+            <Ionicons name="book-outline" size={30} color={colors.border} />
+          )}
+        </View>
+        
+        <View style={styles.itemDetails}>
+          <Text style={styles.itemTitle} numberOfLines={2}>{item.nome}</Text>
+          <Text style={styles.itemPrice}>R$ {parseFloat(item.preco).toFixed(2).replace('.', ',')}</Text>
+          
+          <View style={styles.quantityControl}>
+            <TouchableOpacity onPress={() => updateQuantity(item.id, 'subtrair')} style={styles.qtdBtn}>
+              <Ionicons name="remove" size={16} color={colors.text} />
+            </TouchableOpacity>
+            <Text style={styles.qtdText}>{item.quantidade}</Text>
+            <TouchableOpacity onPress={() => updateQuantity(item.id, 'somar')} style={styles.qtdBtn}>
+              <Ionicons name="add" size={16} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <TouchableOpacity style={styles.deleteBtn} onPress={() => removeFromCart(item.id)}>
+          <Ionicons name="trash-outline" size={22} color="#FF6B6B" />
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -87,15 +92,15 @@ export default function Carrinho() {
         <Text style={styles.headerTitle}>MEU CARRINHO</Text>
       </View>
 
-      {itens.length === 0 ? (
+      {cart.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="cart-outline" size={80} color={colors.border} />
           <Text style={styles.emptyText}>Seu carrinho está vazio.</Text>
         </View>
       ) : (
         <FlatList
-          data={itens}
-          keyExtractor={(item) => item.id}
+          data={cart}
+          keyExtractor={(item) => item.id.toString()}
           renderItem={renderItem}
           contentContainerStyle={styles.listContainer}
         />
@@ -104,13 +109,13 @@ export default function Carrinho() {
       <View style={styles.footer}>
         <View style={styles.totalContainer}>
           <Text style={styles.totalLabel}>Total:</Text>
-          <Text style={styles.totalValue}>R$ {calcularTotal().replace('.', ',')}</Text>
+          <Text style={styles.totalValue}>R$ {getCartTotal().replace('.', ',')}</Text>
         </View>
         
         <TouchableOpacity 
-          style={[styles.checkoutButton, processando || itens.length === 0 ? { opacity: 0.7 } : {}]} 
+          style={[styles.checkoutButton, processando || cart.length === 0 ? { opacity: 0.7 } : {}]} 
           onPress={finalizarCompra}
-          disabled={processando || itens.length === 0}
+          disabled={processando || cart.length === 0}
         >
           {processando ? (
             <ActivityIndicator color={colors.text} />

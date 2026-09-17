@@ -4,6 +4,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { colors } from '../theme/colors';
+import { useCart } from '../contexts/CartContext'; // 🎯 Conexão com o Contexto Global
 
 const getBaseUrl = () => {
   if (Platform.OS === 'android' && !Constants.expoConfig?.hostUri) return 'http://10.0.2.2:3000';
@@ -12,9 +13,12 @@ const getBaseUrl = () => {
 };
 
 export default function DetalhesProduto() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { produto } = route.params; // Recebe o item clicado
+  const { produto } = route.params; 
+  
+  // 🎯 Pegamos a função de adicionar ao carrinho do nosso contexto
+  const { addToCart } = useCart();
 
   const formatImageUrl = (urlDoBanco: string) => {
     if (!urlDoBanco) return null;
@@ -36,7 +40,6 @@ export default function DetalhesProduto() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Destaque da Capa */}
         <View style={styles.imageWrapper}>
           {imagemUri ? (
             <Image source={{ uri: imagemUri }} style={styles.capaImage} />
@@ -83,11 +86,13 @@ export default function DetalhesProduto() {
         </View>
       </ScrollView>
 
-      {/* Botão de Compra Fixo no Rodapé */}
       <View style={styles.footer}>
         <TouchableOpacity 
           style={styles.buyButton}
-          onPress={() => alert('Adicionado ao Carrinho!')}
+          onPress={() => {
+            addToCart(produto); // 🎯 Salva no Carrinho Global
+            navigation.navigate('Carrinho'); // 🎯 Leva o usuário para o carrinho
+          }}
         >
           <Text style={styles.buyButtonText}>COMPRAR</Text>
         </TouchableOpacity>

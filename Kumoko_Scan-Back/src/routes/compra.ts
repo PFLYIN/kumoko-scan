@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import CompraController from '../controllers/CompraController';
-import { authMiddleware } from '../middlewares/auth'; // 🎯 Adicionado proteção
+import { authMiddleware } from '../middlewares/auth';
 
 const router = Router();
 
-// 🎯 CORREÇÃO: Só quem está logado pode comprar
+// Ambas precisam estar logado para funcionar
 router.post('/finalizar', authMiddleware, CompraController.finalizar);
+router.get('/historico', authMiddleware, CompraController.historico);
 
 export default router;

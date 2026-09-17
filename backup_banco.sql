@@ -1,121 +1,95 @@
-DROP TABLE IF EXISTS `capitulos`;
-CREATE TABLE `capitulos` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `manga_id` int(11) NOT NULL,
-  `numero` decimal(5,2) NOT NULL,
-  `titulo` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `manga_id` (`manga_id`),
-  CONSTRAINT `capitulos_ibfk_1` FOREIGN KEY (`manga_id`) REFERENCES `mangas` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+-- Backup atualizado Kumoko Scan (Darkside)
+-- Estrutura do Banco de Dados
 
+CREATE DATABASE IF NOT EXISTS kumoko_scan;
+USE kumoko_scan;
 
-LOCK TABLES `capitulos` WRITE;
-INSERT INTO `capitulos` VALUES (4,5,0.00,''),(5,5,0.00,''),(6,5,1.00,'sério isso?!');
-UNLOCK TABLES;
-
-
-DROP TABLE IF EXISTS `livros`;
-CREATE TABLE `livros` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `nome` varchar(255) NOT NULL,
-  `capa_url` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-
-LOCK TABLES `livros` WRITE;
-INSERT INTO `livros` VALUES (1,'NFS','C:\\Kumoko_Scan-Back\\uploads\\covers\\cover-bb4405820aed9024784c5663006ea8e9-1776034001974.png'),(2,'sem segredo','C:\\Kumoko_Scan-Back\\uploads\\covers\\cover-493d917b2a02f6d25a779e39992e0629-1776048681212.jpg');
-UNLOCK TABLES;
-
-
-DROP TABLE IF EXISTS `mangas`;
-CREATE TABLE `mangas` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `nome` varchar(255) NOT NULL,
-  `volume` int(11) DEFAULT NULL,
-  `capa_url` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `mangas`
---
-
-LOCK TABLES `mangas` WRITE;
-/*!40000 ALTER TABLE `mangas` DISABLE KEYS */;
-INSERT INTO `mangas` VALUES (5,'Matho',21,'C:\\Kumoko_Scan-Back\\uploads\\covers\\cover-42d5258e623b4f3748d235c8e99a9aef-1776023247742.jpg'),(7,'No Hero',1,'C:\\Kumoko_Scan-Back\\uploads\\covers\\cover-3288ed1aacb0972dca72fbe2efe778c8-1776208048072.jpg');
-/*!40000 ALTER TABLE `mangas` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `paginas`
---
-
-DROP TABLE IF EXISTS `paginas`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `paginas` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `manga_id` int(11) NOT NULL,
-  `capitulo_id` int(11) NOT NULL,
-  `numero_pagina` int(11) NOT NULL,
-  `imagem_url` varchar(255) NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `manga_id` (`manga_id`),
-  KEY `capitulo_id` (`capitulo_id`),
-  CONSTRAINT `paginas_ibfk_1` FOREIGN KEY (`manga_id`) REFERENCES `mangas` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `paginas_ibfk_2` FOREIGN KEY (`capitulo_id`) REFERENCES `capitulos` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `paginas`
---
-
-LOCK TABLES `paginas` WRITE;
-/*!40000 ALTER TABLE `paginas` DISABLE KEYS */;
-INSERT INTO `paginas` VALUES (1,5,6,1,'C:\\Kumoko_Scan-Back\\uploads\\pages\\manga_5\\capitulo_6\\page-1-1776029724275.jpg'),(3,5,4,1,'C:\\Kumoko_Scan-Back\\uploads\\pages\\manga_5\\capitulo_4\\page-1-1776216907624.jpg'),(4,5,6,1,'C:\\Kumoko_Scan-Back\\uploads\\pages\\manga_5\\capitulo_6\\page-1-1776365195839.jpg'),(5,5,5,1,'C:\\Kumoko_Scan-Back\\uploads\\pages\\manga_5\\capitulo_5\\page-1-1776367581155.jpg');
-/*!40000 ALTER TABLE `paginas` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `usuarios`
---
-
-DROP TABLE IF EXISTS `usuarios`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+-- Tabela de Usuários (Agora com is_admin e total_gasto)
 CREATE TABLE `usuarios` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `nome` varchar(255) NOT NULL,
-  `email` varchar(255) NOT NULL,
-  `cpf` varchar(14) NOT NULL,
-  `senha` varchar(255) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `email` (`email`),
-  UNIQUE KEY `cpf` (`cpf`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `nome` VARCHAR(255) NOT NULL,
+  `email` VARCHAR(255) NOT NULL UNIQUE,
+  `cpf` VARCHAR(255) NOT NULL UNIQUE,
+  `senha` VARCHAR(255) NOT NULL,
+  `is_admin` TINYINT(1) DEFAULT 0,
+  `total_gasto` DECIMAL(10,2) DEFAULT 0.00,
+  `createdAt` DATETIME NOT NULL,
+  `updatedAt` DATETIME NOT NULL
+);
 
---
--- Dumping data for table `usuarios`
---
+-- Tabela de Mangás
+CREATE TABLE `mangas` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `nome` VARCHAR(255) NOT NULL,
+  `volume` INT,
+  `capa_url` VARCHAR(255),
+  `preco` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  `descricao` TEXT,
+  `avaliacao` DECIMAL(2,1) DEFAULT 5.0,
+  `createdAt` DATETIME NOT NULL,
+  `updatedAt` DATETIME NOT NULL
+);
 
-LOCK TABLES `usuarios` WRITE;
-/*!40000 ALTER TABLE `usuarios` DISABLE KEYS */;
-INSERT INTO `usuarios` VALUES (1,'','','',''),(11,'Kumoko Aranha','kumoko@scan.com','99988877766','$2b$10$eVCdlNEfAYDZvTQJITI7PO2N455y.uFMSbfwG3H7DGbdwDhxsPf7.');
-/*!40000 ALTER TABLE `usuarios` ENABLE KEYS */;
-UNLOCK TABLES;
-/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+-- Tabela de Livros
+CREATE TABLE `livros` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `nome` VARCHAR(255) NOT NULL,
+  `capa_url` VARCHAR(255),
+  `preco` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  `descricao` TEXT,
+  `avaliacao` DECIMAL(2,1) DEFAULT 5.0,
+  `createdAt` DATETIME NOT NULL,
+  `updatedAt` DATETIME NOT NULL
+);
 
-/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
-/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
-/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+-- Tabela de Novels
+CREATE TABLE `novels` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `nome` VARCHAR(255) NOT NULL,
+  `capa_url` VARCHAR(255),
+  `preco` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  `descricao` TEXT,
+  `avaliacao` DECIMAL(2,1) DEFAULT 5.0,
+  `createdAt` DATETIME NOT NULL,
+  `updatedAt` DATETIME NOT NULL
+);
 
--- Dump completed on 2026-06-07 18:27:36
+-- Tabela de Capítulos
+CREATE TABLE `capitulos` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `manga_id` INT NOT NULL,
+  `numero` DECIMAL(5,2) NOT NULL,
+  `titulo` VARCHAR(255),
+  `createdAt` DATETIME NOT NULL,
+  `updatedAt` DATETIME NOT NULL,
+  FOREIGN KEY (`manga_id`) REFERENCES `mangas` (`id`) ON DELETE CASCADE
+);
+
+-- Tabela de Páginas
+CREATE TABLE `paginas` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `manga_id` INT NOT NULL,
+  `capitulo_id` INT NOT NULL,
+  `numero_pagina` INT NOT NULL,
+  `imagem_url` VARCHAR(255) NOT NULL,
+  `createdAt` DATETIME NOT NULL,
+  `updatedAt` DATETIME NOT NULL,
+  FOREIGN KEY (`manga_id`) REFERENCES `mangas` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`capitulo_id`) REFERENCES `capitulos` (`id`) ON DELETE CASCADE
+);
+
+-- Tabela de Compras (Histórico do usuário)
+CREATE TABLE `compras` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `usuario_id` INT NOT NULL,
+  `produto_id` INT NOT NULL,
+  `tipo_produto` VARCHAR(50) NOT NULL,
+  `preco_pago` DECIMAL(10,2) NOT NULL,
+  `createdAt` DATETIME NOT NULL,
+  `updatedAt` DATETIME NOT NULL,
+  FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
+);
+
+-- Inserindo o Admin Padrão (Senha padrão: 123456 - Hash bcrypt)
+INSERT INTO `usuarios` (`nome`, `email`, `cpf`, `senha`, `is_admin`, `total_gasto`, `createdAt`, `updatedAt`) 
+VALUES ('Mestre Darkside', 'admin@dark.com', '00000000000', '$2b$10$wO/9Z1tJqG./a.H6T2.k.e0V8.x8.X.e.O.k.v.T.d.u.P.a.b.M.r', 1, 0.00, NOW(), NOW());
