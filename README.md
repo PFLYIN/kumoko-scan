@@ -1,6 +1,17 @@
 
 # Kumoko Scan - E-commerce e Acervo de Obras
 
+## Foco atual do projeto
+
+O produto ativo passa a ser a aplicação web em `Kumoko_Scan-Front/Kumoko_Scan`.
+O aplicativo mobile foi preservado em `archive/mobile` somente como referência
+histórica: não faz parte do fluxo de execução, publicação ou novas funcionalidades.
+
+O mapa da arquitetura, as decisões iniciais, o contrato OpenAPI, o backlog de
+partida e as orientações operacionais estão em [`docs/README.md`](./docs/README.md).
+As decisões de backend, infraestrutura e deploy ainda precisam ser confirmadas antes
+de automatizar uma publicação.
+
 ## Contextualização do Problema e Evolução do Produto
 
 O projeto consiste no desenvolvimento de uma plataforma de comércio eletrônico voltada para a comercialização e leitura de mangás, livros e light novels.
@@ -28,6 +39,9 @@ Nessa etapa, foi criada uma área administrativa, conhecida como "Painel do Admi
 
 ### Terceira versão - Expansão para dispositivos móveis
 Na terceira versão, o objetivo foi ampliar o acesso à plataforma por meio de um aplicativo móvel desenvolvido com React Native e Expo. Isso permitiu que leitores navegassem pelo catálogo e realizassem compras diretamente pelo celular, com uma experiência nativa e responsiva.
+
+O aplicativo mobile foi posteriormente arquivado em `archive/mobile`. Ele não é uma
+plataforma ativa e não deve receber novas alterações, builds ou publicações.
 
 ---
 
@@ -315,4 +329,3 @@ sequenceDiagram
 O Kumoko Scan foi pensado como uma plataforma completa para a gestão e comercialização de obras digitais e físicas dentro de um ecossistema de leitura e acervo. A solução une catálogo, autenticação, carrinho, compras e painel administrativo em uma estrutura que atende tanto ao cliente quanto ao administrador.
 
 A proposta do projeto vai além de um simples e-commerce: ela oferece uma experiência de leitura e organização do acervo, com foco em mangás, livros e novels, e integra diferentes camadas do sistema em uma arquitetura moderna e escalável.
-

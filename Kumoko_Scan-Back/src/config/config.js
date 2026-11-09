@@ -1,4 +1,3 @@
-// Exigimos o dotenv aqui para caso você vá rodar a CLI localmente por fora do Docker em algum teste
 require('dotenv').config();
 
 module.exports = {

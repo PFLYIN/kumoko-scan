@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import NovelController from '../controllers/NovelController';
 import { uploadCover } from '../config/multer'; 
-import { authMiddleware, adminMiddleware } from '../middlewares/auth'; // 🎯 Importado
+import { authMiddleware } from '../middlewares/auth';
+import { adminMiddleware } from '../middlewares/admin';
 
 const router = Router();
 

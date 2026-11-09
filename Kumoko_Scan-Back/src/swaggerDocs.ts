@@ -11,7 +11,6 @@ export const swaggerDocument = {
       description: "Servidor Local"
     }
   ],
-  // 🎯 ADICIONADO: Configuração do Cadeado (Token JWT) no Swagger
   components: {
     securitySchemes: {
       bearerAuth: {
@@ -73,7 +72,6 @@ export const swaggerDocument = {
         }
       }
     },
-    // 🎯 ADICIONADO: Rotas de Mangás
     "/mangas": {
       get: {
         summary: "Listar todos os mangás do acervo",
@@ -87,7 +85,6 @@ export const swaggerDocument = {
         responses: { "201": { description: "Mangá cadastrado com sucesso" } }
       }
     },
-    // 🎯 ADICIONADO: Rotas de Livros
     "/livros": {
       get: {
         summary: "Listar todos os livros do acervo",
@@ -101,7 +98,6 @@ export const swaggerDocument = {
         responses: { "201": { description: "Livro cadastrado com sucesso" } }
       }
     },
-    // 🎯 ADICIONADO: Rotas de Novels
     "/novels": {
       get: {
         summary: "Listar todas as novels do acervo",
@@ -115,7 +111,6 @@ export const swaggerDocument = {
         responses: { "201": { description: "Novel cadastrada com sucesso" } }
       }
     },
-    // 🎯 ADICIONADO: Rotas de Compras e Histórico
     "/compras/finalizar": {
       post: {
         summary: "Finaliza o carrinho de compras do usuário",

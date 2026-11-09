@@ -1,34 +1,29 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const token = req.headers.authorization?.split(' ')[1];
+export const authMiddleware = (req: any, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
 
-  if (!token) {
-    return res.status(401).json({ error: 'Acesso negado! Cadastre-se ou faça login.' });
+  if (!authHeader) {
+    return res.status(401).json({ error: 'Token de autenticação não fornecido.' });
   }
 
-  try {
-    const secret = process.env.JWT_SECRET || 'KUMOKO_SECRET';
-    // Decodifica o token e descobre quem é o usuário (incluindo o is_admin)
-    const decoded = jwt.verify(token, secret);
-    
-    // Injeta os dados do usuário na requisição para o próximo passo
-    (req as any).user = decoded;
-    
+  const parts = authHeader.split(' ');
+  if (parts.length !== 2) {
+    return res.status(401).json({ error: 'Erro no formato do token.' });
+  }
+
+  const [scheme, token] = parts;
+  if (!/^Bearer$/i.test(scheme)) {
+    return res.status(401).json({ error: 'Token mal formatado.' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET || 'secret_key_kumoko', (err: any, decoded: any) => {
+    if (err) {
+      return res.status(401).json({ error: 'Token inválido ou expirado.' });
+    }
+
+    req.user = decoded; // Injeta os dados do usuário decodificados (id, email, is_admin)
     return next();
-  } catch (error) {
-    return res.status(401).json({ error: 'Token inválido ou expirado.' });
-  }
-};
-
-// 🎯 TRAVA EXCLUSIVA PARA O MESTRE (Admin)
-export const adminMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const user = (req as any).user;
-  
-  if (user && user.is_admin) {
-    return next(); // Pode passar, é o admin
-  }
-  
-  return res.status(403).json({ error: 'Acesso restrito! Apenas o Mestre das Sombras pode fazer isso.' });
+  });
 };

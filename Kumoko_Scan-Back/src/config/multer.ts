@@ -4,7 +4,6 @@ import crypto from 'crypto';
 import { Request } from 'express';
 import fs from 'fs';
 
-// ✅ REQUISITO: Validando extensão de arquivos
 const imageFileFilter = (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
   const allowedExtensions = ['.png', '.jpg', '.jpeg', '.webp'];
   const ext = path.extname(file.originalname).toLowerCase();
@@ -16,7 +15,6 @@ const imageFileFilter = (req: Request, file: Express.Multer.File, cb: FileFilter
   }
 };
 
-// 1. Storage das Capas
 const storageCover = multer.diskStorage({
   destination: (req, file, cb) => {
     const destPath = path.resolve(__dirname, '..', '..', 'uploads', 'covers');
@@ -32,7 +30,6 @@ const storageCover = multer.diskStorage({
   }
 });
 
-// 2. Storage das Páginas dos Capítulos (O que estava faltando!)
 const storagePages = multer.diskStorage({
   destination: (req, file, cb) => {
     let manga_id = req.params.manga_id;
@@ -68,8 +65,7 @@ const storagePages = multer.diskStorage({
   }
 });
 
-// ✅ Exportando ambos com limite de 5MB
-const limitesDeTamanho = { fileSize: 5 * 1024 * 1024 }; // 5 Megabytes
+const limitesDeTamanho = { fileSize: 5 * 1024 * 1024 };
 
 export const uploadCover = multer({ storage: storageCover, fileFilter: imageFileFilter, limits: limitesDeTamanho });
 export const uploadPages = multer({ storage: storagePages, fileFilter: imageFileFilter, limits: limitesDeTamanho });

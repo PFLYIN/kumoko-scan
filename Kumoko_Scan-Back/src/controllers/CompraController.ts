@@ -5,7 +5,6 @@ import { User } from '../models/User';
 class CompraController {
   public async finalizar(req: Request, res: Response) {
     try {
-      // 🎯 SEGURANÇA: Pega o ID do usuário direto do Token JWT validado!
       const usuario = (req as any).user;
       const usuario_id = usuario.id; 
       
@@ -15,7 +14,6 @@ class CompraController {
          return res.status(400).json({ error: 'O carrinho está vazio.' });
       }
 
-      // 🎯 Salva cada mangá/livro comprado no histórico do banco
       for (const prod of produtos) {
          await Compra.create({
             usuario_id,
@@ -25,7 +23,6 @@ class CompraController {
          });
       }
 
-      // 🎯 Atualiza a "Fortuna Investida" do usuário
       const userDb = await User.findByPk(usuario_id);
       if (userDb) {
          const novoTotal = Number(userDb.total_gasto) + Number(total);
@@ -39,7 +36,6 @@ class CompraController {
     }
   }
 
-  // 🎯 ROTA NOVA: Devolve as compras apenas do usuário logado
   public async historico(req: Request, res: Response) {
     try {
       const usuario_id = (req as any).user.id;

@@ -1,0 +1,250 @@
+openapi: 3.0.3
+info:
+  title: Kumoko Scan API
+  version: 1.0.0
+  description: >-
+    Esqueleto contratual derivado dos registros de rotas em Kumoko_Scan-Back.
+    Campos de payload e respostas ainda precisam ser verificados com controllers
+    e testes de contrato antes de ser considerado contrato completo.
+servers:
+  - url: http://localhost:3000
+    description: API local direta
+  - url: https://kumokoscan.local/api
+    description: URL esperada via Nginx local; conferir proxy antes de usar
+tags:
+  - name: Autenticação
+  - name: Mangás
+  - name: Livros
+  - name: Novels
+  - name: Capítulos
+  - name: Compras
+  - name: Páginas
+paths:
+  /register:
+    post:
+      tags: [Autenticação]
+      summary: Criar conta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nome, cpf, email, senha]
+              properties:
+                nome: { type: string }
+                cpf: { type: string }
+                email: { type: string, format: email }
+                senha: { type: string, format: password }
+      responses:
+        "201": { description: Conta criada }
+        "400": { description: Dados inválidos ou conflito }
+  /login:
+    post:
+      tags: [Autenticação]
+      summary: Autenticar usuário
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, senha]
+              properties:
+                email: { type: string, format: email }
+                senha: { type: string, format: password }
+      responses:
+        "200": { description: Autenticação concluída }
+        "401": { description: Credenciais inválidas }
+  /mangas:
+    get:
+      tags: [Mangás]
+      summary: Listar mangás
+      responses:
+        "200": { description: Lista de mangás }
+    post:
+      tags: [Mangás]
+      summary: Criar mangá
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { description: Mangá criado }
+        "401": { description: Não autenticado }
+        "403": { description: Acesso administrativo necessário }
+  /mangas/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Mangás]
+      summary: Consultar mangá
+      responses:
+        "200": { description: Mangá encontrado }
+        "404": { description: Mangá não encontrado }
+    put:
+      tags: [Mangás]
+      summary: Atualizar mangá
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Mangá atualizado }
+        "401": { description: Não autenticado }
+        "403": { description: Acesso administrativo necessário }
+    delete:
+      tags: [Mangás]
+      summary: Remover mangá
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Mangá removido }
+        "404": { description: Mangá não encontrado }
+        "401": { description: Não autenticado }
+        "403": { description: Acesso administrativo necessário }
+  /livros:
+    get:
+      tags: [Livros]
+      summary: Listar livros
+      responses:
+        "200": { description: Lista de livros }
+    post:
+      tags: [Livros]
+      summary: Criar livro
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { description: Livro criado }
+        "401": { description: Não autenticado }
+        "403": { description: Acesso administrativo necessário }
+  /livros/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Livros]
+      summary: Consultar livro
+      responses:
+        "200": { description: Livro encontrado }
+        "404": { description: Livro não encontrado }
+    put:
+      tags: [Livros]
+      summary: Atualizar livro
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Livro atualizado }
+        "401": { description: Não autenticado }
+        "403": { description: Acesso administrativo necessário }
+    delete:
+      tags: [Livros]
+      summary: Remover livro
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Livro removido }
+        "404": { description: Livro não encontrado }
+        "401": { description: Não autenticado }
+        "403": { description: Acesso administrativo necessário }
+  /novels:
+    get:
+      tags: [Novels]
+      summary: Listar novels
+      responses:
+        "200": { description: Lista de novels }
+    post:
+      tags: [Novels]
+      summary: Criar novel
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { description: Novel criada }
+        "401": { description: Não autenticado }
+        "403": { description: Acesso administrativo necessário }
+  /capitulos/manga/{manga_id}:
+    parameters:
+      - name: manga_id
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Capítulos]
+      summary: Listar capítulos de um mangá
+      responses:
+        "200": { description: Lista de capítulos }
+  /capitulos:
+    post:
+      tags: [Capítulos]
+      summary: Criar capítulo
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { description: Capítulo criado }
+        "401": { description: Não autenticado }
+        "403": { description: Acesso administrativo necessário }
+  /capitulos/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    put:
+      tags: [Capítulos]
+      summary: Atualizar capítulo
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Capítulo atualizado }
+    delete:
+      tags: [Capítulos]
+      summary: Remover capítulo
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Capítulo removido }
+        "404": { description: Capítulo não encontrado }
+  /compras/finalizar:
+    post:
+      tags: [Compras]
+      summary: Finalizar compra do usuário autenticado
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Compra registrada }
+        "400": { description: Itens inválidos ou indisponíveis }
+        "401": { description: Não autenticado }
+  /compras/historico:
+    get:
+      tags: [Compras]
+      summary: Consultar histórico do usuário autenticado
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Histórico de compras }
+        "401": { description: Não autenticado }
+  /page/{capitulo_id}:
+    parameters:
+      - name: capitulo_id
+        in: path
+        required: true
+        schema: { type: integer }
+    get:
+      tags: [Páginas]
+      summary: Consultar páginas de um capítulo
+      responses:
+        "200": { description: Lista de páginas }
+  /page/{manga_id}/{capitulo_id}/{numero_pagina}:
+    parameters:
+      - name: manga_id
+        in: path
+        required: true
+        schema: { type: integer }
+      - name: capitulo_id
+        in: path
+        required: true
+        schema: { type: integer }
+      - name: numero_pagina
+        in: path
+        required: true
+        schema: { type: integer }
+    post:
+      tags: [Páginas]
+      summary: Enviar página de capítulo
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { description: Página enviada }
+        "401": { description: Não autenticado }
+        "403": { description: Acesso administrativo necessário }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }

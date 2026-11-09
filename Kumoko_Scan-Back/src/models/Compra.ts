@@ -20,7 +20,7 @@ Compra.init({
 }, {
   sequelize: db,
   tableName: 'compras',
-  timestamps: true // 🎯 AGORA É TRUE: O histórico não terá mais datas vazias!
+  timestamps: true
 });
 
 export default Compra;

@@ -39,7 +39,6 @@ class CapituloController {
     public async listByManga(req: Request, res: Response) {
         try {
             const { manga_id } = req.params;
-            // 🎯 AJUSTADO: Forçando a tipagem do ID do mangá de busca
             const capitulos = await Capitulo.findAll({ where: { manga_id: String(manga_id) } });
             return res.status(200).json(capitulos);
         } catch (error) {
@@ -50,7 +49,6 @@ class CapituloController {
     public async delete(req: Request, res: Response) {
         try {
             const { id } = req.params;
-            // 🎯 SEU AJUSTE MANTIDO: ID amarrado como String para o findByPk
             const capitulo = await Capitulo.findByPk(String(id));
             
             if (!capitulo) return res.status(404).json({ error: 'Capítulo não encontrado.' });

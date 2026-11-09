@@ -2,8 +2,6 @@ import { Request, Response } from 'express';
 import Novel from '../models/Novel';
 
 class NovelController {
-  
-  // Lista todas as Novels (Vamos usar depois no carrinho e home)
   async index(req: Request, res: Response) {
     try {
       const novels = await Novel.findAll();
@@ -13,7 +11,6 @@ class NovelController {
     }
   }
 
-  // Cria uma nova Novel (O que o app Mobile está chamando agora)
   async store(req: Request, res: Response) {
     try {
       const { nome, preco, descricao, avaliacao } = req.body;

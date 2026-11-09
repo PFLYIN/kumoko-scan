@@ -1,0 +1,238 @@
+:root {
+  /* Paleta Kumoko Scan - Elegante e Escura */
+  --primary: #6366f1; /* Indigo 500 */
+  --primary-hover: #4f46e5; /* Indigo 600 */
+  --bg-dark: #0b0c10;
+  --bg-medium: #0f111a;
+  --card-bg: rgba(15, 17, 26, 0.6); /* Transparente para o blur */
+  --text: #e8edf3;
+  --text-muted: #8b9bb4;
+  --input-bg: rgba(255, 255, 255, 0.03);
+  --border: rgba(255, 255, 255, 0.08);
+  --radius: 24px; /* Bordas mais suaves */
+}
+
+.auth-main {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  background-color: var(--bg-dark);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+}
+
+.auth-wrapper {
+  display: flex;
+  gap: 80px;
+  max-width: 1000px;
+  width: 100%;
+  align-items: center;
+}
+
+/* --- LADO ESQUERDO --- */
+.auth-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.logo-text {
+  font-size: 32px;
+  font-weight: 300;
+  letter-spacing: 0.2em;
+  color: var(--text);
+}
+
+.logo-text span {
+  font-weight: 500;
+  color: var(--primary);
+  margin-left: 4px;
+}
+
+.welcome h2 {
+  font-size: 46px;
+  font-weight: 300;
+  line-height: 1.2;
+  margin-bottom: 16px;
+  color: #fff;
+}
+
+.welcome p {
+  color: var(--text-muted);
+  line-height: 1.6;
+  font-size: 16px;
+  max-width: 40ch;
+}
+
+/* --- LADO DIREITO --- */
+.auth-right {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--card-bg);
+  backdrop-filter: blur(12px); /* O efeito "gelatinoso" / vidro */
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+/* --- ABAS --- */
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tab-btn.is-active {
+  color: var(--primary);
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: inset 0 -2px 0 var(--primary);
+}
+
+.tab-panel {
+  padding: 32px;
+  animation: fadeIn 0.4s ease; /* Transição suave ao trocar de aba */
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card-title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 400;
+  margin-bottom: 24px;
+  color: #fff;
+}
+
+/* --- CAMPOS DO FORMULÁRIO --- */
+.field {
+  margin-bottom: 16px;
+}
+
+.field input {
+  width: 100%;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  transition: all 0.3s;
+}
+
+.field input::placeholder {
+  color: #5c6a7e;
+}
+
+.field input:focus {
+  border-color: var(--primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* --- BOTÕES --- */
+.btn-primary {
+  width: 100%;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 8px;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+  transform: translateY(-2px);
+}
+
+/* --- SEPARADOR --- */
+.auth-separator {
+  display: flex;
+  align-items: center;
+  margin: 0 32px 24px 32px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.auth-separator::before,
+.auth-separator::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--border);
+}
+
+.auth-separator span {
+  padding: 0 16px;
+}
+
+/* --- BOTÃO DO GOOGLE --- */
+.google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(100% - 64px);
+  margin: 0 auto 32px auto;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 14px;
+  font-weight: 500;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.google-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--text-muted);
+}
+
+/* --- RESPONSIVIDADE --- */
+@media (max-width: 900px) {
+  .auth-wrapper {
+    flex-direction: column;
+    gap: 40px;
+  }
+  .auth-left {
+    text-align: center;
+    align-items: center;
+  }
+}

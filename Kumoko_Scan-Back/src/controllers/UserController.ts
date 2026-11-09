@@ -8,7 +8,6 @@ class UserController {
     try {
       const { nome, email, cpf, senha } = req.body;
       
-      // 🎯 CORREÇÃO: Tratamento rigoroso da string recebida
       const emailLimpo = email ? email.trim().toLowerCase() : '';
       const cpfLimpo = cpf ? cpf.trim() : '';
 
@@ -16,11 +15,9 @@ class UserController {
       if (!isCpfValid(cpfLimpo)) return res.status(400).json({ error: 'CPF inválido.' });
       if (!isPasswordStrong(senha)) return res.status(400).json({ error: 'Senha fraca.' });
 
-      // 🎯 CORREÇÃO: Verificação independente de E-mail
       const userExists = await User.findOne({ where: { email: emailLimpo } });
       if (userExists) return res.status(400).json({ error: 'E-mail já cadastrado!' });
 
-      // 🎯 CORREÇÃO: Verificação independente de CPF (Evita o erro silencioso)
       const cpfExists = await User.findOne({ where: { cpf: cpfLimpo } });
       if (cpfExists) return res.status(400).json({ error: 'CPF já vinculado a outra conta!' });
 
