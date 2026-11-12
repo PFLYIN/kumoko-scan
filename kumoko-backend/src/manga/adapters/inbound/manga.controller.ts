@@ -1,21 +1,25 @@
-import { Controller, Post, Body, Get, Param, Inject } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Inject, NotFoundException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { CriarMangaDto } from './criar-manga.dto';
 import { CRIAR_MANGA_USE_CASE_PORT, CriarMangaUseCasePort } from '../../ports/inbound/criar-manga.use-case.port';
+import { MangaRepositoryAdapter } from '../outbound/manga.repository.adapter';
 
-// 🌐 ROTA PRINCIPAL: localhost:3000/mangas
+@ApiTags('Mangas') // 🏷️ Documentação Swagger
 @Controller('mangas')
 export class MangaController {
   constructor(
-    // 💉 Injeção de Dependência: O Controller não sabe como o service funciona por dentro,
-    // ele só conversa com a "Porta de Entrada" (Contrato).
+    // 💉 Porta de Entrada para Criação (Hexagonal puro!)
     @Inject(CRIAR_MANGA_USE_CASE_PORT)
     private readonly criarMangaUseCase: CriarMangaUseCasePort,
+
+    // 🛠️ Temporário: Injetando o banco direto só para testarmos a busca hoje.
+    private readonly mangaRepository: MangaRepositoryAdapter,
   ) {}
 
-  // 📝 API 1: Criar nova obra no acervo (POST /mangas)
   @Post()
+  @ApiOperation({ summary: 'Criar nova obra no acervo' })
+  @ApiResponse({ status: 201, description: 'Obra registrada com sucesso.' })
   async criar(@Body() dto: CriarMangaDto) {
-    // Repassa para o Caso de Uso
     const novaObra = await this.criarMangaUseCase.executar(dto.titulo, dto.autor, dto.capaUrl);
     
     return {
@@ -24,13 +28,19 @@ export class MangaController {
     };
   }
 
-  // 🔍 API 2: Buscar obra por ID (GET /mangas/:id) - Igual os professores fizeram!
   @Get(':id')
+  @ApiOperation({ summary: 'Buscar detalhes de uma obra pelo ID' })
+  @ApiParam({ name: 'id', description: 'ID gerado ao criar o mangá' })
+  @ApiResponse({ status: 200, description: 'Detalhes da obra encontrados.' })
+  @ApiResponse({ status: 404, description: 'Obra não encontrada.' })
   async buscarPorId(@Param('id') id: string) {
-    // Deixando a rota pronta para quando criarmos o Use Case de busca
-    return {
-      message: `Buscando os detalhes da obra com ID: ${id}`,c
-      // manga: await this.buscarMangaUseCase.executar(id)
-    };
+    // 🔍 Buscando no array em memória
+    const manga = this.mangaRepository.buscarPorId(id);
+    
+    if (!manga) {
+      throw new NotFoundException(`Nenhuma obra encontrada com o ID: ${id}`);
+    }
+    
+    return manga;
   }
-} 
+}
