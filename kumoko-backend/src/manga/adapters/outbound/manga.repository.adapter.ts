@@ -1,25 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { MangaRepositoryPort } from '../../ports/outbound/manga.repository.port';
 import { Manga } from '../../domain/manga.entity';
 
 @Injectable()
-export class MangaRepositoryAdapter implements MangaRepositoryPort {
-  // 🗄️ Simulando o MariaDB em memória para testarmos a rota HTTP agora mesmo!
-  // Quando formos plugar o banco real, só mudaremos o código aqui dentro.
-  private bancoDeDados: Manga[] = [];
+export class MangaRepositoryAdapter {
+  private mangas: Manga[] = [];
 
-  async salvar(manga: Manga): Promise<void> {
-    this.bancoDeDados.push(manga);
-    console.log('📦 [MariaDB Simulado] Salvo com sucesso:', manga.titulo);
+  salvar(manga: Manga): Manga {
+    this.mangas.push(manga);
+    return manga;
   }
 
-  async buscarPorId(id: string): Promise<Manga | null> {
-    const manga = this.bancoDeDados.find(m => m.id === id);
-    return manga || null;
-  }
-
-  async buscarPorTitulo(titulo: string): Promise<Manga | null> {
-    const manga = this.bancoDeDados.find(m => m.titulo === titulo);
-    return manga || null;
+  // 🔍 Novo método para buscar um mangá específico pelo ID
+  buscarPorId(id: string): Manga | undefined {
+    return this.mangas.find(manga => manga.id === id);
   }
 }

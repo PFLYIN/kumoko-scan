@@ -29,8 +29,8 @@ export class MangaController {
   async buscarPorId(@Param('id') id: string) {
     // Deixando a rota pronta para quando criarmos o Use Case de busca
     return {
-      message: `Buscando os detalhes da obra com ID: ${id}`,
+      message: `Buscando os detalhes da obra com ID: ${id}`,c
       // manga: await this.buscarMangaUseCase.executar(id)
     };
   }
-}
+} 
