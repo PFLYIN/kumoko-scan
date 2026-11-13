@@ -8,17 +8,14 @@ import { MANGA_REPOSITORY_PORT } from './ports/outbound/manga.repository.port';
 @Module({
   controllers: [MangaController],
   providers: [
-    // 💉 Avisando o NestJS que o Adapter existe e pode ser injetado no Controller!
-    MangaRepositoryAdapter, 
-    
-    // Abaixo ficam as ligações hexagonais que você já tinha feito antes:
+    MangaRepositoryAdapter, // Instância principal do banco em memória
     {
       provide: CRIAR_MANGA_USE_CASE_PORT,
       useClass: CriarMangaUseCase,
     },
     {
       provide: MANGA_REPOSITORY_PORT,
-      useClass: MangaRepositoryAdapter,
+      useExisting: MangaRepositoryAdapter, // 👈 O segredo está aqui! Usamos a mesma instância já criada.
     }
   ],
 })
