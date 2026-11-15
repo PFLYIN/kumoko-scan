@@ -2,6 +2,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { CacheService } from '@kumoko/cache';
 import type { Repository } from 'typeorm';
 import type { CatalogSettings } from '../../../config/catalog-settings';
+import type { ImageProcessorService } from '../../../shared/images/image-processor.service';
 import type { FileStorageService } from '../../../shared/storage/file-storage.service';
 import { TipoObra } from '../domain/tipo-obra';
 import type { Obra } from '../entities/obra.entity';
@@ -19,6 +20,8 @@ function obraFake(over: Partial<Obra> = {}): Obra {
     preco: 39.9,
     avaliacao: 5,
     capaPath: 'covers/antiga.jpg',
+    capaThumbPath: 'covers/antiga.thumb.webp',
+    capaMediaPath: 'covers/antiga.medium.webp',
     totalVendido: 0,
     criadoEm: new Date('2026-11-14T12:00:00Z'),
     atualizadoEm: new Date('2026-11-14T12:00:00Z'),
@@ -63,14 +66,21 @@ function setup() {
   };
   const events = { obraAtualizada: jest.fn(), obraExcluida: jest.fn() };
   const settings = { cacheTtlSeconds: 60 } as CatalogSettings;
+  const images = {
+    gerarVariantesCapa: jest.fn().mockResolvedValue({
+      thumbPath: 'covers/nova.thumb.webp',
+      mediaPath: 'covers/nova.medium.webp',
+    }),
+  };
   const service = new ObrasService(
     repo as unknown as Repository<Obra>,
     cache as unknown as CacheService,
     storage as unknown as FileStorageService,
     events as unknown as ObraEventsPublisher,
     settings,
+    images as unknown as ImageProcessorService,
   );
-  return { service, repo, cache, storage, events, store };
+  return { service, repo, cache, storage, events, store, images };
 }
 
 const arquivo = { buffer: Buffer.from('img') } as Express.Multer.File;
@@ -108,12 +118,16 @@ describe('ObrasService', () => {
       tipo: 'livro',
       volume: null,
       capaUrl: '/files/covers/nova.jpg',
+      capaThumbUrl: '/files/covers/nova.thumb.webp',
+      capaMediaUrl: '/files/covers/nova.medium.webp',
     });
     expect(cache.invalidatePrefix).toHaveBeenCalledWith('catalog:obras:');
     expect(store.has('catalog:obras:id:1')).toBe(false);
     expect(store.has('catalog:capitulos:paginas:1')).toBe(true);
     expect(events.obraAtualizada).toHaveBeenCalledWith(expect.objectContaining({ id: 1, preco: 49.9 }));
     expect(storage.removeFile).toHaveBeenCalledWith('covers/antiga.jpg');
+    expect(storage.removeFile).toHaveBeenCalledWith('covers/antiga.thumb.webp');
+    expect(storage.removeFile).toHaveBeenCalledWith('covers/antiga.medium.webp');
   });
 
   it('update: regra de dominio violada vira 400 sem gravar nada', async () => {
@@ -131,6 +145,8 @@ describe('ObrasService', () => {
       'db fora',
     );
     expect(storage.removeFile).toHaveBeenCalledWith('covers/nova.jpg');
+    expect(storage.removeFile).toHaveBeenCalledWith('covers/nova.thumb.webp');
+    expect(storage.removeFile).toHaveBeenCalledWith('covers/nova.medium.webp');
     expect(events.obraAtualizada).not.toHaveBeenCalled();
     expect(cache.invalidatePrefix).not.toHaveBeenCalled();
   });
@@ -142,6 +158,8 @@ describe('ObrasService', () => {
       expect.objectContaining({ nome: 'Re:Zero', avaliacao: 5, capaPath: null, volume: 2 }),
     );
     expect(res.capaUrl).toBeNull();
+    expect(res.capaThumbUrl).toBeNull();
+    expect(res.capaMediaUrl).toBeNull();
     expect(cache.invalidatePrefix).toHaveBeenCalledWith('catalog:obras:');
     expect(events.obraAtualizada).toHaveBeenCalled();
   });
@@ -151,8 +169,9 @@ describe('ObrasService', () => {
     repo.findOneBy.mockResolvedValue(obraFake());
     repo.save.mockRejectedValueOnce(new Error('db fora'));
     await expect(service.update(1, {}, arquivo)).rejects.toThrow('db fora');
-    expect(storage.removeFile).toHaveBeenCalledTimes(1);
+    expect(storage.removeFile).toHaveBeenCalledTimes(3);
     expect(storage.removeFile).toHaveBeenCalledWith('covers/nova.jpg');
+    expect(storage.removeFile).not.toHaveBeenCalledWith('covers/antiga.jpg');
   });
 
   it('remove: apaga linha, capa e pasta de paginas, invalida e publica catalog.obra.deleted', async () => {
@@ -161,6 +180,8 @@ describe('ObrasService', () => {
     await service.remove(7);
     expect(repo.delete).toHaveBeenCalledWith({ id: 7 });
     expect(storage.removeFile).toHaveBeenCalledWith('covers/antiga.jpg');
+    expect(storage.removeFile).toHaveBeenCalledWith('covers/antiga.thumb.webp');
+    expect(storage.removeFile).toHaveBeenCalledWith('covers/antiga.medium.webp');
     expect(storage.removeDir).toHaveBeenCalledWith('pages/obra_7');
     expect(cache.invalidatePrefix).toHaveBeenCalledWith('catalog:obras:');
     expect(events.obraExcluida).toHaveBeenCalledWith({ id: 7, tipo: TipoObra.Manga });

@@ -18,6 +18,9 @@ export function toObraResponse(obra: Obra): ObraResponseDto {
     preco: Number(obra.preco),
     avaliacao: Number(obra.avaliacao),
     capaUrl: toPublicFileUrl(obra.capaPath),
+    // Variantes caem para o original quando ainda nao existem.
+    capaThumbUrl: toPublicFileUrl(obra.capaThumbPath ?? obra.capaPath),
+    capaMediaUrl: toPublicFileUrl(obra.capaMediaPath ?? obra.capaPath),
     totalVendido: Number(obra.totalVendido ?? 0),
     criadoEm: toIso(obra.criadoEm),
     atualizadoEm: toIso(obra.atualizadoEm),

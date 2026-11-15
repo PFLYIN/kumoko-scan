@@ -11,6 +11,7 @@ import type { Repository } from 'typeorm';
 import { CatalogSettings } from '../../../config/catalog-settings';
 import { CatalogCacheKeys } from '../../../shared/cache/catalog-cache-keys';
 import { isDuplicateEntryError } from '../../../shared/database/database-errors';
+import { ImageProcessorService } from '../../../shared/images/image-processor.service';
 import { FileStorageService } from '../../../shared/storage/file-storage.service';
 import { StoragePaths } from '../../../shared/storage/storage-paths';
 import { Capitulo } from '../../capitulos/entities/capitulo.entity';
@@ -33,6 +34,7 @@ export class PaginasService {
     private readonly cache: CacheService,
     private readonly storage: FileStorageService,
     private readonly settings: CatalogSettings,
+    private readonly images: ImageProcessorService,
   ) {}
 
   async listByCapitulo(capituloId: number): Promise<CacheResult<PaginaResponseDto[]>> {
@@ -64,12 +66,16 @@ export class PaginasService {
       StoragePaths.capituloPagesDir(capitulo.obraId, capituloId),
       imagem.buffer,
     );
+    const imagemOtimizadaPath = await this.images.gerarVersaoLeitura(imagemPath);
     let pagina: Pagina;
     try {
-      pagina = await this.paginas.save(this.paginas.create({ capituloId, numero, imagemPath }));
+      pagina = await this.paginas.save(
+        this.paginas.create({ capituloId, numero, imagemPath, imagemOtimizadaPath }),
+      );
     } catch (error) {
-      // Compensacao: o arquivo ja foi gravado, mas a linha nao.
+      // Compensacao: os arquivos ja foram gravados, mas a linha nao.
       await this.storage.removeFile(imagemPath);
+      await this.storage.removeFile(imagemOtimizadaPath);
       throw isDuplicateEntryError(error) ? new ConflictException(PAGINA_DUPLICADA) : error;
     }
     this.logger.log(`Pagina criada paginaId=${pagina.id} capituloId=${capituloId} numero=${numero}`);
@@ -85,6 +91,7 @@ export class PaginasService {
     const capitulo = await this.capitulos.findOneBy({ id: pagina.capituloId });
     await this.paginas.delete({ id });
     await this.storage.removeFile(pagina.imagemPath);
+    await this.storage.removeFile(pagina.imagemOtimizadaPath);
     this.logger.log(`Pagina excluida paginaId=${id} capituloId=${pagina.capituloId}`);
     if (capitulo) {
       await this.invalidar(capitulo);

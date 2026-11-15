@@ -32,4 +32,10 @@ export class PaginaResponseDto {
 
   @ApiProperty({ example: '/files/pages/obra_1/capitulo_1/1731600000000-uuid.jpg' })
   imagemUrl: string;
+
+  @ApiProperty({
+    example: '/files/pages/obra_1/capitulo_1/1731600000000-uuid.reader.webp',
+    description: 'Versao WebP de leitura (max 1200px); igual a imagemUrl se ainda nao gerada.',
+  })
+  imagemOtimizadaUrl: string;
 }

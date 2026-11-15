@@ -51,8 +51,10 @@ export default function ObraDetalhesPage() {
 
       <article className="grid gap-8 md:grid-cols-[minmax(0,18rem)_1fr] lg:gap-12">
         <ObraCover
-          src={obra.capaUrl}
+          src={obra.capaMediaUrl ?? obra.capaUrl}
           alt={`Capa de ${obra.nome}`}
+          width={720}
+          height={1080}
           className="mx-auto aspect-[2/3] w-full max-w-72 rounded-2xl shadow-2xl ring-1 shadow-black/50 ring-white/10"
         />
 

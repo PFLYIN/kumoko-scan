@@ -85,7 +85,7 @@ export default function ObraEditor({ obra, onSalvar }) {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="panel grid gap-6 p-6 md:grid-cols-[14rem_1fr]">
-      <CapaInput capaAtual={obra?.capaUrl ?? null} arquivo={capa} onChange={setCapa} nome={form.nome} />
+      <CapaInput capaAtual={obra?.capaMediaUrl ?? obra?.capaUrl ?? null} arquivo={capa} onChange={setCapa} nome={form.nome} />
 
       <div className="flex flex-col gap-4">
         <div className="grid gap-4 sm:grid-cols-2">

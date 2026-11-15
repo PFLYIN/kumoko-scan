@@ -31,6 +31,22 @@ export class ObraResponseDto {
   @ApiProperty({ example: '/files/covers/1731600000000-uuid.jpg', nullable: true, type: String })
   capaUrl: string | null;
 
+  @ApiProperty({
+    example: '/files/covers/1731600000000-uuid.thumb.webp',
+    nullable: true,
+    type: String,
+    description: 'Capa WebP 360px para cards; igual a capaUrl se a variante nao existir; null sem capa.',
+  })
+  capaThumbUrl: string | null;
+
+  @ApiProperty({
+    example: '/files/covers/1731600000000-uuid.medium.webp',
+    nullable: true,
+    type: String,
+    description: 'Capa WebP 720px para detalhe; igual a capaUrl se a variante nao existir; null sem capa.',
+  })
+  capaMediaUrl: string | null;
+
   @ApiProperty({ example: 0 })
   totalVendido: number;
 

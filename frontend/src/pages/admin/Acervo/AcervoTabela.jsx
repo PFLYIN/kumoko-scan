@@ -33,7 +33,7 @@ export default function AcervoTabela({ obras, onExcluir }) {
           {obras.map((obra) => (
             <tr key={obra.id} className="flex flex-wrap items-center gap-3 p-4 md:table-row md:p-0">
               <td className="flex min-w-0 flex-1 items-center gap-3 md:px-4 md:py-3">
-                <ObraCover src={obra.capaUrl} alt={`Capa de ${obra.nome}`} className="aspect-[2/3] w-10 shrink-0 rounded" />
+                <ObraCover src={obra.capaThumbUrl ?? obra.capaUrl} alt={`Capa de ${obra.nome}`} className="aspect-[2/3] w-10 shrink-0 rounded" />
                 <div className="min-w-0">
                   <Link to={`/obras/${obra.id}`} className="block truncate font-medium text-zinc-100 hover:text-brand-300">
                     {obra.nome}

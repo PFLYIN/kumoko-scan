@@ -7,6 +7,7 @@ import { extname, join } from 'node:path';
 import type { Repository } from 'typeorm';
 import { CatalogSettings } from '../../../config/catalog-settings';
 import { OBRAS_CACHE_PREFIX } from '../../../shared/cache/catalog-cache-keys';
+import { ImageProcessorService } from '../../../shared/images/image-processor.service';
 import { FileStorageService } from '../../../shared/storage/file-storage.service';
 import { StoragePaths } from '../../../shared/storage/storage-paths';
 import { normalizarObra } from '../domain/obra-rules';
@@ -32,6 +33,7 @@ export class CatalogSeedService implements OnApplicationBootstrap {
     private readonly storage: FileStorageService,
     private readonly settings: CatalogSettings,
     private readonly cache: CacheService,
+    private readonly images: ImageProcessorService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -67,7 +69,16 @@ export class CatalogSeedService implements OnApplicationBootstrap {
           ext,
         );
         copiadas.push(capaPath);
-        novas.push(this.obras.create({ ...normalizarObra(mangaSeed(arquivo, indice)), capaPath }));
+        const { thumbPath, mediaPath } = await this.images.gerarVariantesCapa(capaPath);
+        copiadas.push(...[thumbPath, mediaPath].filter((p): p is string => Boolean(p)));
+        novas.push(
+          this.obras.create({
+            ...normalizarObra(mangaSeed(arquivo, indice)),
+            capaPath,
+            capaThumbPath: thumbPath,
+            capaMediaPath: mediaPath,
+          }),
+        );
       }
       for (const dados of OBRAS_SEM_CAPA) {
         novas.push(this.obras.create({ ...normalizarObra(dados), capaPath: null }));

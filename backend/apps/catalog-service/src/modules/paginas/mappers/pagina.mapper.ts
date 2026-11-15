@@ -8,5 +8,7 @@ export function toPaginaResponse(pagina: Pagina): PaginaResponseDto {
     capituloId: pagina.capituloId,
     numero: pagina.numero,
     imagemUrl: toPublicFileUrl(pagina.imagemPath) ?? '',
+    // Cai para o original quando a versao otimizada ainda nao existe.
+    imagemOtimizadaUrl: toPublicFileUrl(pagina.imagemOtimizadaPath ?? pagina.imagemPath) ?? '',
   };
 }

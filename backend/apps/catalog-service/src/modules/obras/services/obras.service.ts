@@ -5,6 +5,8 @@ import { paginate, toSkipTake, type Paginated } from '@kumoko/common';
 import { In, type Repository } from 'typeorm';
 import { CatalogSettings } from '../../../config/catalog-settings';
 import { CatalogCacheKeys, OBRAS_CACHE_PREFIX } from '../../../shared/cache/catalog-cache-keys';
+import { ImageProcessorService } from '../../../shared/images/image-processor.service';
+import type { VariantesCapa } from '../../../shared/images/image-processor.service';
 import { FileStorageService } from '../../../shared/storage/file-storage.service';
 import { StoragePaths } from '../../../shared/storage/storage-paths';
 import type { CreateObraDto } from '../dto/create-obra.dto';
@@ -37,6 +39,11 @@ function dominio<T>(fn: () => T): T {
   }
 }
 
+/** Original + variantes da capa (para exclusao/substituicao). */
+function arquivosDaCapa(obra: Obra): (string | null)[] {
+  return [obra.capaPath, obra.capaThumbPath, obra.capaMediaPath];
+}
+
 function dadosDaObra(obra: Obra): DadosObra {
   return {
     tipo: obra.tipo,
@@ -60,6 +67,7 @@ export class ObrasService {
     private readonly storage: FileStorageService,
     private readonly events: ObraEventsPublisher,
     private readonly settings: CatalogSettings,
+    private readonly images: ImageProcessorService,
   ) {}
 
   async list(query: ListObrasQueryDto): Promise<CacheResult<Paginated<ObraResponseDto>>> {
@@ -146,11 +154,19 @@ export class ObrasService {
     );
     // Valida magic bytes e grava a capa ANTES do banco; se o banco falhar, remove o arquivo.
     const capaPath = capa ? await this.storage.saveImage(StoragePaths.coversDir, capa.buffer) : null;
+    const variantes = await this.gerarVariantes(capaPath);
     let obra: Obra;
     try {
-      obra = await this.obras.save(this.obras.create({ ...dados, capaPath }));
+      obra = await this.obras.save(
+        this.obras.create({
+          ...dados,
+          capaPath,
+          capaThumbPath: variantes.thumbPath,
+          capaMediaPath: variantes.mediaPath,
+        }),
+      );
     } catch (error) {
-      await this.compensarArquivo(capaPath);
+      await this.compensarArquivos([capaPath, variantes.thumbPath, variantes.mediaPath]);
       throw error;
     }
     this.logger.log(`Obra criada obraId=${obra.id} tipo=${obra.tipo} preco=${Number(obra.preco).toFixed(2)}`);
@@ -171,21 +187,25 @@ export class ObrasService {
         avaliacao: dto.avaliacao,
       }),
     );
-    const capaAntiga = obra.capaPath;
+    const arquivosAntigos = arquivosDaCapa(obra);
     const novaCapa = capa ? await this.storage.saveImage(StoragePaths.coversDir, capa.buffer) : null;
+    const variantes = await this.gerarVariantes(novaCapa);
     Object.assign(obra, dados);
     if (novaCapa) {
       obra.capaPath = novaCapa;
+      obra.capaThumbPath = variantes.thumbPath;
+      obra.capaMediaPath = variantes.mediaPath;
     }
     let salva: Obra;
     try {
       salva = await this.obras.save(obra);
     } catch (error) {
-      await this.compensarArquivo(novaCapa);
+      await this.compensarArquivos([novaCapa, variantes.thumbPath, variantes.mediaPath]);
       throw error;
     }
-    if (novaCapa && capaAntiga) {
-      await this.storage.removeFile(capaAntiga);
+    if (novaCapa) {
+      // Substituicao: apaga a capa antiga e suas variantes.
+      await this.removerArquivos(arquivosAntigos);
     }
     this.logger.log(
       `Obra atualizada obraId=${salva.id} tipo=${salva.tipo} preco=${Number(salva.preco).toFixed(2)}`,
@@ -198,7 +218,7 @@ export class ObrasService {
     const obra = await this.getEntity(id);
     // ON DELETE CASCADE remove capitulos e paginas no banco; os arquivos sao apagados em seguida.
     await this.obras.delete({ id });
-    await this.storage.removeFile(obra.capaPath);
+    await this.removerArquivos(arquivosDaCapa(obra));
     await this.storage.removeDir(StoragePaths.obraPagesDir(id));
     this.logger.log(`Obra excluida obraId=${id}`);
     await this.invalidarObras();
@@ -216,10 +236,25 @@ export class ObrasService {
     await this.events.obraAtualizada(obra);
   }
 
-  private async compensarArquivo(relativePath: string | null): Promise<void> {
-    if (relativePath) {
-      this.logger.warn(`Falha ao gravar obra no banco; removendo arquivo enviado path=${relativePath}`);
-      await this.storage.removeFile(relativePath);
+  private async gerarVariantes(capaPath: string | null): Promise<VariantesCapa> {
+    return capaPath ? this.images.gerarVariantesCapa(capaPath) : { thumbPath: null, mediaPath: null };
+  }
+
+  private async removerArquivos(paths: (string | null)[]): Promise<void> {
+    for (const path of paths) {
+      if (path) {
+        await this.storage.removeFile(path);
+      }
+    }
+  }
+
+  private async compensarArquivos(paths: (string | null)[]): Promise<void> {
+    const enviados = paths.filter((path): path is string => Boolean(path));
+    if (enviados.length > 0) {
+      this.logger.warn(
+        `Falha ao gravar obra no banco; removendo arquivos enviados paths=${enviados.join(',')}`,
+      );
+      await this.removerArquivos(enviados);
     }
   }
 }

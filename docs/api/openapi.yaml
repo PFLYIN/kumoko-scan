@@ -283,6 +283,8 @@ paths:
                     preco: 29.9
                     avaliacao: 5
                     capaUrl: /files/covers/2b1f0c7e-dandadan.jpg
+                    capaThumbUrl: /files/covers/2b1f0c7e-dandadan.thumb.webp
+                    capaMediaUrl: /files/covers/2b1f0c7e-dandadan.medium.webp
                     totalVendido: 4
                     criadoEm: '2026-11-14T12:00:00.000Z'
                     atualizadoEm: '2026-11-14T12:30:00.000Z'
@@ -563,10 +565,12 @@ paths:
                   capituloId: 10
                   numero: 1
                   imagemUrl: /files/pages/obra_3/capitulo_10/8c1e4b2a.jpg
+                  imagemOtimizadaUrl: /files/pages/obra_3/capitulo_10/8c1e4b2a.reader.webp
                 - id: 102
                   capituloId: 10
                   numero: 2
                   imagemUrl: /files/pages/obra_3/capitulo_10/f02d9e71.jpg
+                  imagemOtimizadaUrl: /files/pages/obra_3/capitulo_10/f02d9e71.reader.webp
         '404':
           $ref: '#/components/responses/NotFound'
     post:
@@ -1075,7 +1079,7 @@ components:
 
     ObraResponse:
       type: object
-      required: [id, tipo, nome, autor, descricao, volume, preco, avaliacao, capaUrl, totalVendido, criadoEm, atualizadoEm]
+      required: [id, tipo, nome, autor, descricao, volume, preco, avaliacao, capaUrl, capaThumbUrl, capaMediaUrl, totalVendido, criadoEm, atualizadoEm]
       properties:
         id:
           type: integer
@@ -1102,6 +1106,18 @@ components:
           type: [string, 'null']
           description: URL pública servida pelo gateway em `/files/`.
           example: /files/covers/2b1f0c7e-dandadan.jpg
+        capaThumbUrl:
+          type: [string, 'null']
+          description: >-
+            Capa em WebP com largura 360 px (cards/grids). Igual a `capaUrl` enquanto a variante
+            não existe; `null` quando a obra não tem capa.
+          example: /files/covers/2b1f0c7e-dandadan.thumb.webp
+        capaMediaUrl:
+          type: [string, 'null']
+          description: >-
+            Capa em WebP com largura 720 px (detalhe e formulários de admin). Igual a `capaUrl`
+            enquanto a variante não existe; `null` quando a obra não tem capa.
+          example: /files/covers/2b1f0c7e-dandadan.medium.webp
         totalVendido:
           type: integer
           description: Atualizado pelo evento `order.completed`.
@@ -1210,7 +1226,7 @@ components:
 
     PaginaResponse:
       type: object
-      required: [id, capituloId, numero, imagemUrl]
+      required: [id, capituloId, numero, imagemUrl, imagemOtimizadaUrl]
       properties:
         id:
           type: integer
@@ -1221,7 +1237,14 @@ components:
           minimum: 1
         imagemUrl:
           type: string
+          description: Imagem original enviada.
           example: /files/pages/obra_3/capitulo_10/8c1e4b2a.jpg
+        imagemOtimizadaUrl:
+          type: string
+          description: >-
+            Versão WebP para leitura (largura máx. 1200 px, sem metadados). Igual a `imagemUrl`
+            enquanto a versão otimizada não existe.
+          example: /files/pages/obra_3/capitulo_10/8c1e4b2a.reader.webp
 
     UploadPaginaForm:
       type: object

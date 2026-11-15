@@ -40,7 +40,7 @@ function readStorage() {
 }
 
 function toSnapshot(obra) {
-  return { nome: obra.nome, tipo: obra.tipo, capaUrl: obra.capaUrl ?? null, preco: Number(obra.preco) || 0 };
+  return { nome: obra.nome, tipo: obra.tipo, capaUrl: obra.capaThumbUrl ?? obra.capaUrl ?? null, preco: Number(obra.preco) || 0 };
 }
 
 export function CartProvider({ children }) {

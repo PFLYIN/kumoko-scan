@@ -109,9 +109,12 @@ export default function PaginasPanel({ capituloId, onTotalPaginas }) {
           {paginas.map((pagina) => (
             <li key={pagina.id} className="group relative overflow-hidden rounded-lg ring-1 ring-white/10">
               <img
-                src={pagina.imagemUrl}
+                src={pagina.imagemOtimizadaUrl || pagina.imagemUrl}
                 alt={`Página ${pagina.numero}`}
+                width={200}
+                height={300}
                 loading="lazy"
+                decoding="async"
                 className="aspect-[2/3] w-full bg-ink-800 object-cover"
               />
               <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-100">

@@ -75,13 +75,26 @@ export default function LeitorPage() {
         <ol className="my-6 flex flex-col items-center bg-black" aria-label="Páginas do capítulo">
           {paginas.map((pagina, i) => (
             <li key={pagina.id} className="w-full">
+              {/* Versao WebP otimizada (max 1200px); width/height reservam espaco 2:3 ate a imagem carregar. */}
               <img
-                src={pagina.imagemUrl}
+                src={pagina.imagemOtimizadaUrl || pagina.imagemUrl}
                 alt={`Página ${pagina.numero} de ${paginas.length}`}
+                width={1200}
+                height={1800}
                 loading={i < 2 ? 'eager' : 'lazy'}
                 decoding="async"
                 className="mx-auto block h-auto w-full max-w-3xl select-none"
               />
+              {pagina.imagemOtimizadaUrl && pagina.imagemOtimizadaUrl !== pagina.imagemUrl && (
+                <a
+                  href={pagina.imagemUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mx-auto block w-full max-w-3xl px-2 py-1 text-right text-[11px] text-zinc-500 hover:text-brand-300"
+                >
+                  ver original
+                </a>
+              )}
             </li>
           ))}
         </ol>
