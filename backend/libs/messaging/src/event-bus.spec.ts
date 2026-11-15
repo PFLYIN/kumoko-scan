@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { getRequestId, runWithRequestContext } from '@kumoko/observability';
+import { getRequestId, MetricsService, runWithRequestContext } from '@kumoko/observability';
 import type { Redis } from 'ioredis';
 import { EventEmitter } from 'node:events';
 import type { EventEnvelope } from './contracts/event-envelope';
@@ -158,5 +158,67 @@ describe('EventBus', () => {
         bus.handleMessage('kumoko.events.user.registered', envelopeFor()),
       ).resolves.toBeUndefined();
     });
+  });
+});
+
+describe('EventBus - metricas', () => {
+  const flush = () => new Promise((resolve) => setImmediate(resolve));
+  let metrics: MetricsService;
+  let bus: EventBus;
+  let subscriber: SubscriberMock;
+
+  beforeEach(() => {
+    jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+    jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    metrics = new MetricsService({ serviceName: 'auth-service' });
+    subscriber = new SubscriberMock();
+    bus = new EventBus(
+      { publish: jest.fn().mockResolvedValue(1) } as unknown as Redis,
+      subscriber as unknown as Redis,
+      { serviceName: 'auth-service' },
+      metrics,
+    );
+  });
+
+  afterEach(() => {
+    bus.onModuleDestroy();
+    jest.restoreAllMocks();
+  });
+
+  const message = (id: string) =>
+    JSON.stringify({
+      id,
+      type: 'order.completed',
+      source: 'order-service',
+      occurredAt: new Date().toISOString(),
+      correlationId: id,
+      payload,
+    });
+
+  it('conta eventos publicados por tipo', async () => {
+    await bus.publish(EventTypes.OrderCompleted, payload);
+    const values = (await metrics.eventsPublished.get()).values;
+    expect(values).toEqual([
+      expect.objectContaining({ value: 1, labels: { service: 'auth-service', type: 'order.completed' } }),
+    ]);
+  });
+
+  it('conta consumo como processed, duplicate e failed', async () => {
+    const results: unknown[] = [undefined, 'duplicado', new Error('boom')];
+    bus.subscribe(EventTypes.OrderCompleted, () => {
+      const next = results.shift();
+      if (next instanceof Error) {
+        throw next;
+      }
+      return next;
+    });
+    await flush();
+    for (const id of ['e1', 'e2', 'e3']) {
+      await bus.handleMessage('kumoko.events.order.completed', message(id));
+    }
+    const byOutcome = Object.fromEntries(
+      (await metrics.eventsConsumed.get()).values.map((v) => [v.labels.outcome, v.value]),
+    );
+    expect(byOutcome).toEqual({ processed: 1, duplicate: 1, failed: 1 });
   });
 });

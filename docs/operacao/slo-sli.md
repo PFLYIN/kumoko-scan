@@ -1,8 +1,8 @@
 # SLOs e SLIs
 
 > **Metas, não medições.** Os valores abaixo são objetivos de projeto definidos para a
-> v1.0.0. Até existir coleta contínua (Prometheus ou similar), eles são verificados por
-> amostragem manual (`/metrics`, logs do Nginx e smoke test). Resultados medidos devem
+> v1.0.0. A coleta contínua é feita pelo Prometheus e exibida no Grafana (painéis de SLO em
+> "Kumoko Scan — Visão geral"); sem ela, use amostragem manual (`/metrics`, logs do Nginx e smoke test). Resultados medidos devem
 > ser anotados na seção 6 com data e método — não preencher com números estimados.
 
 ## 1. Fontes de dados disponíveis
@@ -49,7 +49,7 @@ referência é > 80% de HIT nas listagens em horário de uso.
 
 ## 4. Consultas
 
-Com Prometheus (evolução prevista; não incluído no Compose atual), os SLIs ficam:
+Com Prometheus (serviço `prometheus` do Compose; painéis no Grafana em `/grafana/`), os SLIs ficam (Prometheus 3 grava buckets inteiros como `le="1.0"`):
 
 ```promql
 # SLI-2: fração de GETs do catálogo em até 250 ms (janela de 30 dias)
@@ -58,7 +58,7 @@ sum(rate(http_request_duration_seconds_bucket{service="catalog-service",method="
 sum(rate(http_request_duration_seconds_count{service="catalog-service",method="GET"}[30d]))
 
 # SLI-3: checkout em até 1 s
-sum(rate(http_request_duration_seconds_bucket{service="order-service",method="POST",route=~".*pedidos",le="1"}[30d]))
+sum(rate(http_request_duration_seconds_bucket{service="order-service",method="POST",route=~".*pedidos",le="1.0"}[30d]))
 /
 sum(rate(http_request_duration_seconds_count{service="order-service",method="POST",route=~".*pedidos",status_code!~"5.."}[30d]))
 
@@ -70,7 +70,7 @@ sum(rate(http_request_duration_seconds_count{service="order-service",method="POS
 Os limites `0.25` e `1` correspondem a buckets do histograma (`0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10` segundos); ao alterar
 os buckets em `@kumoko/observability`, revisar estas consultas.
 
-Sem Prometheus (estado atual), amostragem manual:
+Sem Prometheus (observabilidade desligada), amostragem manual:
 
 ```bash
 # Disponibilidade a partir do log JSON do gateway (últimas N requisições /api)

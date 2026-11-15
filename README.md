@@ -98,6 +98,8 @@ flowchart LR
 | `order-service` | NestJS + TypeORM | 3003 | — | Checkout (aggregate `Pedido`), idempotência, histórico |
 | `mariadb` | MariaDB 11.4 | 3306 | — | Um database e um usuário por serviço |
 | `redis` | Redis 7.4 | 6379 | — | Cache-aside (`catalog:*`, `orders:*`) e Pub/Sub (`kumoko.events.*`) |
+| `prometheus` | Prometheus 3.5 | 9090 | — | Coleta `/metrics` dos 3 serviços a cada 10 s; regras de alerta |
+| `grafana` | Grafana OSS 12.1 | 3000 | — (via gateway em `/grafana/`) | Dashboard provisionado com RED, SLOs, cache, eventos e circuit breaker |
 
 Eventos trocados pelo Redis Pub/Sub:
 
@@ -141,6 +143,11 @@ migrations, o `auth-service` cria o administrador a partir de `ADMIN_*` e o
    (no `.env.example`: `admin@kumoko.local` / `Admin@Kumoko2026` — troque em qualquer
    ambiente compartilhado). O painel fica em **/admin/acervo**.
 4. Para comprar, crie uma conta de cliente em **/entrar** (CPF precisa ser válido).
+5. Observabilidade: **https://localhost:8443/grafana/** (usuário `admin`, senha
+   `GRAFANA_ADMIN_PASSWORD` do `.env`). O dashboard **Kumoko Scan — Visão geral** abre
+   como página inicial. Detalhes em [docs/operacao/observabilidade.md](docs/operacao/observabilidade.md).
+
+![Dashboard do Grafana](docs/assets/grafana-dashboard.png)
 
 ### Swagger de cada serviço
 

@@ -1,4 +1,5 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { MetricsService } from '@kumoko/observability';
 import type { Redis } from 'ioredis';
 import { REDIS_CLIENT } from './redis.constants';
 
@@ -26,7 +27,11 @@ function escapeGlob(value: string): string {
 export class CacheService {
   private readonly logger = new Logger(CacheService.name);
 
-  constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
+  constructor(
+    @Inject(REDIS_CLIENT) private readonly redis: Redis,
+    // Opcional: sem ObservabilityModule (ex.: testes) o cache funciona sem metricas.
+    @Optional() private readonly metrics?: MetricsService,
+  ) {}
 
   async getOrSet<T>(key: string, ttlSeconds: number, loader: () => Promise<T>): Promise<CacheResult<T>> {
     const cached = await this.get<T>(key);
@@ -42,6 +47,12 @@ export class CacheService {
 
   /** Le e desserializa; `undefined` em miss, valor corrompido ou Redis indisponivel. */
   async get<T>(key: string): Promise<T | undefined> {
+    const value = await this.read<T>(key);
+    this.metrics?.recordCacheOperation(value === undefined ? 'miss' : 'hit');
+    return value;
+  }
+
+  private async read<T>(key: string): Promise<T | undefined> {
     let raw: string | null;
     try {
       raw = await this.redis.get(key);
@@ -79,6 +90,7 @@ export class CacheService {
   async invalidate(key: string): Promise<number> {
     try {
       const removed = await this.redis.del(key);
+      this.metrics?.recordCacheOperation('invalidate');
       this.logger.log(`Cache INVALIDATE key=${key} removidas=${removed}`);
       return removed;
     } catch (error) {
@@ -100,6 +112,7 @@ export class CacheService {
           removed += await this.redis.unlink(...keys);
         }
       } while (cursor !== '0');
+      this.metrics?.recordCacheOperation('invalidate');
       this.logger.log(`Cache INVALIDATE prefix=${prefix} removidas=${removed}`);
       return removed;
     } catch (error) {
