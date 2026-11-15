@@ -31,7 +31,7 @@ export default function ObraFormPage() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
+    <div className="max-w-6xl">
       <Link to="/admin/acervo" className="mb-6 inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-brand-300">
         <ArrowLeft className="size-4" aria-hidden="true" /> Voltar ao acervo
       </Link>

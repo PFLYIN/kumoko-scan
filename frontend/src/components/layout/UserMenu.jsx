@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LibraryBig, LogOut, Receipt, UserRound } from 'lucide-react';
+import { LayoutDashboard, LogOut, Receipt, UserRound } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useToast } from '../../hooks/useToast.js';
 
@@ -75,8 +75,8 @@ export default function UserMenu() {
               <Receipt className="size-4" aria-hidden="true" /> Meus pedidos
             </Link>
             {isAdmin && (
-              <Link role="menuitem" onClick={() => setOpen(false)} to="/admin/acervo" className={itemClass}>
-                <LibraryBig className="size-4" aria-hidden="true" /> Gerenciar acervo
+              <Link role="menuitem" onClick={() => setOpen(false)} to="/admin" className={itemClass}>
+                <LayoutDashboard className="size-4" aria-hidden="true" /> Painel admin
               </Link>
             )}
           </div>

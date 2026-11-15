@@ -62,6 +62,7 @@ Detalhes em [arquitetura/ddd.md §6.1](../arquitetura/ddd.md#61-regras-por-tipo-
 | `e2e/cliente-conta.spec.js` | cadastro com validações e duplicado, login com senha errada/certa, logout, perfil (nome, troca de senha) |
 | `e2e/cliente-compra.spec.js` | carrinho com os 3 tipos, quantidades, remoção, comprar agora, checkout, histórico, detalhe do pedido, total gasto, obra removida, bloqueio do admin |
 | `e2e/admin-acervo.spec.js` | acervo (filtros, busca, ordenação, paginação) e criar/editar/excluir obra de cada tipo com capa |
+| `e2e/cliente-melhorias.spec.js` | gêneros (API, filtro, chips), relacionadas, busca com sugestões, destaque da home, capítulos (busca/ordem/último lido), leitor (modo, largura, progresso, continuar lendo) |
 | `e2e/admin-capitulos.spec.js` | capítulos e páginas de mangá e novel lidos no leitor; regra do livro (UI + API) e troca de tipo |
 
 - 24 testes × 2 projetos (`desktop-1366`, `desktop-1920`) = **48 testes**. Duas rodadas seguidas locais: **48/48 e 48/48**.
@@ -98,3 +99,70 @@ e `test-results` (traces) são publicados como artifact.
 - O seed não cria capítulos: um visitante numa instalação nova não encontra nenhum capítulo para ler até o admin publicar. Criar capítulos de exemplo exige imagens de páginas com licença de uso.
 - Livros e novels do seed não têm capa (aparecem com o placeholder com título).
 - Light novels usam o mesmo leitor de imagens dos mangás. Leitura de novel em texto seria um recurso novo (outro modelo de conteúdo).
+
+## 6. Melhorias de UX do cliente (2026-11-15)
+
+Diagnóstico feito com Playwright (Chrome) em 1366x768 e 1920x1080 nas telas do cliente.
+
+| Área | Antes | Depois |
+|---|---|---|
+| Home | Hero de 55vh só com imagem e slogan; CTA "Explorar obras" com contraste baixo; duas vitrines | Hero em duas colunas com **destaque rotativo de obras reais** (mais vendidas com capa; pausa no hover/foco, botões anterior/próximo/pausar, respeita `prefers-reduced-motion`), CTA primário sólido, **Continuar lendo**, **Explore por gênero** e vitrine **Light novels** |
+| Catálogo | Só tipo, busca e ordenação | **Filtro por gênero** (`?genero=` na URL, contagem por gênero, combinável com tipo/busca/ordem, "Limpar gênero") |
+| Busca do header | Só Enter → catálogo | **Sugestões com debounce** (5 obras com capa, tipo, autor e preço), setas/Enter/Esc, "Ver todos os N resultados" |
+| Detalhe | "Voltar ao catálogo"; sinopse fixa; lista de capítulos simples; nada a seguir | **Trilha** (Início › Catálogo › Tipo › Obra), **chips de gênero** clicáveis, **sinopse expansível**, **Continuar leitura: cap. X, pág. Y/Z**, capítulos com **busca** (≥ 8), **ordem** e selo **Último lido**, skeleton, **Obras relacionadas** |
+| Leitor | Só rolagem vertical, largura fixa, setas sem documentação | **Modo rolagem contínua / página a página** (clique nas metades ou setas), **largura** (estreita/média/larga, tecla L), **barra de progresso**, "Página N de M", **atalhos documentados** na tela, **retomar da página salva**, **pré-carregamento** do próximo capítulo (na metade) e da próxima página |
+| Progresso | Inexistente | Salvo por obra no `localStorage` (visitante e cliente; não sincroniza entre dispositivos) |
+| Acessibilidade | — | Carrossel com `aria-roledescription`, chips com `aria-pressed`, listbox com `aria-activedescendant`, progressbar com valores, animações desligadas com `prefers-reduced-motion` |
+
+Backend (catalog-service): migration `1763300000000-AddGeneros` (coluna `generos` JSON, preenche as obras do seed por nome),
+`generos` em `ObraResponse`, multipart `generos` ("Ação, Fantasia"; normaliza caixa e duplicados; máx. 8), filtro
+`GET /api/obras?genero=` (sem diferenciar caixa/acento), `GET /api/obras/generos` e `GET /api/obras/:id/relacionadas?limit=`
+(2 pontos por gênero em comum + 1 por mesmo tipo), todos com cache-aside sob `catalog:obras:` (invalidados em qualquer escrita).
+
+Testes: `e2e/cliente-melhorias.spec.js` — 7 testes × 2 resoluções (API de gêneros/relacionadas/cache, filtro do catálogo,
+detalhe, capítulos, busca com sugestões, destaque da home, leitor/progresso). Unitários do catalog-service: 111.
+
+![Home com destaque e gêneros](../assets/ux-cliente-1920-home.png)
+![Catálogo filtrado por gênero](../assets/ux-cliente-1920-catalogo-generos.png)
+![Detalhe com trilha, gêneros e relacionadas](../assets/ux-cliente-1920-detalhe.png)
+
+Pendências: drawer de carrinho no header e confirmação/tela de sucesso do checkout não foram feitos nesta rodada;
+o progresso de leitura não sincroniza entre dispositivos (exigiria endpoint no auth-service).
+
+## 7. Melhorias do painel administrativo (2026-11-15)
+
+Diagnóstico (Playwright, 1366 e 1920, antes): a área admin era só o acervo, acessível apenas pelo menu da conta; usava o
+layout do cliente com conteúdo centralizado e muito espaço vazio em 1920; não havia nenhuma visão de vendas, pedidos de
+todos os clientes ou gestão de usuários; tabela com linhas altas (~9 obras por tela) e ordenação só pelo select; o
+formulário de obra validava apenas no envio, não mostrava como o card apareceria e não tinha gêneros.
+
+| Área | Antes | Depois |
+|---|---|---|
+| Navegação | `/admin` redirecionava para o acervo; sem menu próprio | **Layout admin** com sidebar (Painel, Acervo, Pedidos, Usuários), trilha (Admin › Acervo › Editar obra) e largura até 1760px |
+| Painel `/admin` | Inexistente | **KPIs reais** (receita total, pedidos, ticket médio, clientes, obras), **receita por dia (30 dias)** com tooltip e tabela acessível, **top 5 obras**, **pedidos recentes** com nome do cliente |
+| Pedidos `/admin/pedidos` | Inexistente | Todos os pedidos paginados, filtro por **status** e **cliente** (clicar no cliente filtra), linha expansível com itens, capa, quantidade × preço e subtotal |
+| Usuários `/admin/usuarios` | Inexistente | Busca por nome/e-mail, filtro por papel, ordenação (recentes, nome, maior gasto), total gasto, cadastro, atalho para os pedidos do cliente; **promover/rebaixar** com diálogo de confirmação; botão desabilitado para si mesmo |
+| Acervo | Ordenação só pelo select; linhas altas | Cabeçalhos **Obra / Preço / Vendidos clicáveis** (`aria-sort`), linhas mais densas |
+| Form de obra | Validação só no envio | Validação **ao sair do campo** e, após a 1ª tentativa, **a cada tecla**; **gêneros como tags** (Enter/vírgula, sugestões, máx. 8); **prévia do card** do catálogo (≥ 1536px) |
+
+Backend:
+- order-service — `GET /api/pedidos/admin/resumo?dias=` (1..365, padrão 30; SQL agregado só de pedidos CONCLUIDO, dias
+  em UTC sem lacunas, cache em memória de 15s) e `GET /api/pedidos/admin?page&limit&status&usuarioId`; controller
+  separado `@Roles('admin')` registrado antes de `/pedidos/:id`; port `PedidoRepository.listarTodos`.
+- auth-service — `GET /api/users/admin/resumo`, `GET /api/users/admin?page&limit&busca&role&ids&ordenar` e
+  `PATCH /api/users/:id/role` (400 ao alterar o próprio papel; 409 se removeria o último admin — contagem com lock
+  pessimista na mesma transação). A listagem fica em `/users/admin` porque o gateway redireciona `/api/users` (301).
+- Sem migrations novas. Swagger nos dois serviços e `docs/api/openapi.yaml` (tag Admin).
+
+Testes: unitários novos `pedidos-admin.service.spec.ts` (4) e `admin-usuarios.service.spec.ts` (8); E2E
+`e2e/admin-painel.spec.js` — 5 testes × 2 resoluções (KPIs × API e sidebar, pedidos com detalhe/filtros, usuários
+promover/rebaixar/autoproteção, validação em tempo real + gêneros criar/editar, 403 para cliente em todas as rotas admin).
+
+![Painel administrativo](../assets/admin-painel.png)
+![Pedidos (admin)](../assets/admin-pedidos.png)
+![Formulário de obra com gêneros e prévia do card](../assets/admin-obra-form.png)
+
+Pendências: reordenar páginas de um capítulo exige endpoint no catalog-service (ex.: `PATCH /api/paginas/:id { numero }`
+ou `PUT /api/capitulos/:id/paginas/ordem`); contador de capítulos por obra no acervo exige o campo `totalCapitulos` em
+`ObraResponse`; a troca de papel só vale no próximo login (o JWT atual mantém o papel até expirar — revogar exigiria
+versão de token/denylist); o menu da conta ainda leva direto a "Gerenciar acervo" (arquivo do header, outra frente).

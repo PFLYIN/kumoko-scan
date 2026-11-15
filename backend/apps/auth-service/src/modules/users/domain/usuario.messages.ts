@@ -8,4 +8,6 @@ export const UsuarioMessages = {
   SENHA_ATUAL_OBRIGATORIA: 'Informe a senha atual para definir uma nova senha.',
   SENHA_ATUAL_INCORRETA: 'Senha atual incorreta.',
   NOVA_SENHA_IGUAL: 'A nova senha deve ser diferente da senha atual.',
+  ROLE_PROPRIO: 'Você não pode alterar o seu próprio papel.',
+  ULTIMO_ADMIN: 'Não é possível remover o último administrador.',
 } as const;

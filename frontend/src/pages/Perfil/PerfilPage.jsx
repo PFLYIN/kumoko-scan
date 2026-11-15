@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LibraryBig, LogOut, Receipt, ShieldCheck, UserRound, Wallet } from 'lucide-react';
+import { LayoutDashboard, LogOut, Receipt, ShieldCheck, UserRound, Wallet } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useToast } from '../../hooks/useToast.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
@@ -66,8 +66,8 @@ export default function PerfilPage() {
               <Receipt className="size-4" aria-hidden="true" /> Meus pedidos
             </Link>
             {isAdmin && (
-              <Link to="/admin/acervo" className="btn-secondary w-full">
-                <LibraryBig className="size-4" aria-hidden="true" /> Gerenciar acervo
+              <Link to="/admin" className="btn-secondary w-full">
+                <LayoutDashboard className="size-4" aria-hidden="true" /> Painel admin
               </Link>
             )}
             <button type="button" className="btn-danger w-full" onClick={sair}>

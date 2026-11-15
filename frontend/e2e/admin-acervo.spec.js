@@ -27,7 +27,9 @@ async function preencherObra(page, { tipo, nome, preco, volume, autor, capaIndex
 test('acervo: menu do admin, filtros por tipo, busca, ordenacao e paginacao', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /Menu da conta/ }).click();
-  await page.getByRole('menuitem', { name: 'Gerenciar acervo' }).click();
+  await page.getByRole('menuitem', { name: 'Painel admin' }).click();
+  await expect(page).toHaveURL(/\/admin$/);
+  await page.getByRole('navigation', { name: 'Administração', exact: true }).getByRole('link', { name: 'Acervo' }).click();
   await expect(page).toHaveURL(/\/admin\/acervo$/);
   await expect(page.getByRole('heading', { name: 'Gerenciar acervo' })).toBeVisible();
   await expect(page.getByText(/\d+ obra\(s\) cadastrada\(s\)/)).toBeVisible();

@@ -9,9 +9,21 @@ function cleanParams(params = {}) {
 
 // catalog-service: obras, capitulos e paginas.
 export const catalogService = {
-  // params: { tipo?, busca?, ordenar?, page?, limit? } -> Paginated<ObraResponse>
+  // params: { tipo?, genero?, busca?, ordenar?, page?, limit? } -> Paginated<ObraResponse>
   async listObras(params) {
     const { data } = await http.get('/obras', { params: cleanParams(params) });
+    return data;
+  },
+
+  // [{ genero, total }] do mais comum ao menos comum
+  async listGeneros() {
+    const { data } = await http.get('/obras/generos');
+    return data;
+  },
+
+  // Obras com generos em comum / mesmo tipo (exclui a propria obra)
+  async getRelacionadas(id, limit = 6) {
+    const { data } = await http.get(`/obras/${id}/relacionadas`, { params: { limit } });
     return data;
   },
 

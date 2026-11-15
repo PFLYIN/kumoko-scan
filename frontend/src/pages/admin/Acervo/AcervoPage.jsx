@@ -62,7 +62,7 @@ export default function AcervoPage() {
   const obras = data?.data ?? [];
 
   return (
-    <div className="mx-auto max-w-7xl 2xl:max-w-[96rem] px-4 py-10 sm:px-6">
+    <div>
       <PageHeader
         title="Gerenciar acervo"
         subtitle={data?.meta ? `${data.meta.total} obra(s) cadastrada(s)` : 'Obras, capas e capítulos do catálogo.'}
@@ -100,7 +100,7 @@ export default function AcervoPage() {
       )}
       {!loading && !error && obras.length > 0 && (
         <>
-          <AcervoTabela obras={obras} onExcluir={setParaExcluir} />
+          <AcervoTabela obras={obras} onExcluir={setParaExcluir} ordenar={ordenar} onOrdenar={(o) => updateParams({ ordenar: o === 'recentes' ? undefined : o })} />
           <Pagination
             page={data.meta?.page ?? page}
             totalPages={data.meta?.totalPages ?? 1}

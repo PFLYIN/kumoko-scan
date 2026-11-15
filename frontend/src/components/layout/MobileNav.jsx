@@ -21,8 +21,8 @@ export default function MobileNav({ id }) {
         ))}
         {isAdmin && (
           <li>
-            <NavLink to="/admin/acervo" className={({ isActive }) => linkClass(isActive)}>
-              Gerenciar acervo
+            <NavLink to="/admin" end className={({ isActive }) => linkClass(isActive)}>
+              Painel admin
             </NavLink>
           </li>
         )}

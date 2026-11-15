@@ -76,7 +76,7 @@ test.describe('cadastro e login', () => {
 
     // Cliente comum nao ve o menu de admin.
     await menu.click();
-    await expect(page.getByRole('menuitem', { name: 'Gerenciar acervo' })).toHaveCount(0);
+    await expect(page.getByRole('menuitem', { name: 'Painel admin' })).toHaveCount(0);
     await page.getByRole('menuitem', { name: 'Sair' }).click();
     await expect(page.getByText('Você saiu da sua conta.')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Entrar' })).toBeVisible();

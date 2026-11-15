@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { toSkipTake } from '@kumoko/common';
-import { DataSource, In, QueryFailedError, Repository } from 'typeorm';
+import { DataSource, type FindOptionsWhere, In, QueryFailedError, Repository } from 'typeorm';
 import type { IdempotencyKey } from '../domain/idempotency-key';
 import type { Pedido } from '../domain/pedido';
 import { IdempotenciaConflitoError } from '../domain/pedido.errors';
-import type { PaginaPedidos, PedidoRepository } from '../domain/pedido.repository';
+import type { FiltroPedidos, PaginaPedidos, PedidoRepository } from '../domain/pedido.repository';
 import { ItemPedidoEntity } from '../entities/item-pedido.entity';
 import { PedidoEntity } from '../entities/pedido.entity';
 import { PedidoPersistenceMapper } from '../mappers/pedido-persistence.mapper';
@@ -60,8 +60,22 @@ export class TypeOrmPedidoRepository implements PedidoRepository {
   }
 
   async listarPorUsuario(usuarioId: number, pagina: { page: number; limit: number }): Promise<PaginaPedidos> {
+    return this.listar({ usuarioId }, pagina);
+  }
+
+  async listarTodos(filtro: FiltroPedidos, pagina: { page: number; limit: number }): Promise<PaginaPedidos> {
+    const where: FindOptionsWhere<PedidoEntity> = {};
+    if (filtro.usuarioId !== undefined) where.usuarioId = filtro.usuarioId;
+    if (filtro.status !== undefined) where.status = filtro.status;
+    return this.listar(where, pagina);
+  }
+
+  private async listar(
+    where: FindOptionsWhere<PedidoEntity>,
+    pagina: { page: number; limit: number },
+  ): Promise<PaginaPedidos> {
     const [entities, total] = await this.pedidos.findAndCount({
-      where: { usuarioId },
+      where,
       order: { criadoEm: 'DESC', id: 'DESC' },
       ...toSkipTake(pagina),
     });
