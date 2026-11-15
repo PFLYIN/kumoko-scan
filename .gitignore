@@ -1,25 +1,42 @@
+# ---------- Dependencias ----------
 node_modules/
-**/node_modules/
+
+# ---------- Builds e relatorios ----------
+dist/
+build/
+coverage/
+.vite/
+.expo/
+*.tsbuildinfo
+
+# ---------- Ambiente e segredos ----------
 .env
 .env.*
 !.env.example
-dist/
-**/dist/
-build/
-**/build/
-.expo/
-**/.expo/
-.vite/
-**/.vite/
-.docker/
-*.log
+!frontend/.env.example
 *.key
 *.pem
+*.crt
 *.p12
 *.pfx
-nginx/certs/*.crt
-nginx/certs/*.key
-nginx/certs/*.pem
+
+# ---------- Logs ----------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---------- Uploads gerados em runtime (o seed versionado fica em seed/covers) ----------
+/uploads/
+backend/uploads/
+backend/apps/*/uploads/
 Kumoko_Scan-Back/uploads/
-Kumoko_Scan-Back/upload/
+
+# ---------- Editores e sistema operacional ----------
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
 .DS_Store
+Thumbs.db

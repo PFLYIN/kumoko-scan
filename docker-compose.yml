@@ -1,42 +1,274 @@
-version: '3.8'
+# Kumoko Scan - stack completa (gateway + frontend + 3 microsservicos + MariaDB + Redis).
+# Uso: cp .env.example .env && docker compose up -d --build --wait
+# Somente o gateway publica portas no host; o resto conversa pela rede interna kumoko_net.
+name: kumoko-scan
+
+# ---------- Blocos reutilizaveis ----------
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+# Variaveis comuns a todos os servicos Nest (nomes genericos validados com Joi no boot).
+x-nest-env: &nest-env
+  NODE_ENV: ${NODE_ENV:-production}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  DB_HOST: mariadb
+  DB_PORT: "3306"
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  REDIS_PASSWORD: ${REDIS_PASSWORD:?defina REDIS_PASSWORD no .env}
+  JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
+  CORS_ORIGINS: ${CORS_ORIGINS:-https://localhost:8443}
+
+# Base de um servico Nest: mesmo Dockerfile do monorepo, app escolhido via ARG APP.
+x-nest-service: &nest-service
+  restart: unless-stopped
+  networks:
+    - kumoko_net
+  logging: *default-logging
+  depends_on:
+    mariadb:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  deploy:
+    resources:
+      limits:
+        cpus: "1.0"
+        memory: 384M
 
 services:
-  # 🗄️ Banco de Dados Relacional (MariaDB)
-  database:
-    image: mariadb:10.6
-    container_name: kumoko_db
-    restart: always
+  # ---------- Gateway: unico ponto de entrada (HTTPS, roteamento, rate limit, /files) ----------
+  gateway:
+    build:
+      context: ./infra/nginx
+      dockerfile: Dockerfile
+    image: ${IMAGE_REGISTRY:-kumoko-scan}/gateway:${IMAGE_TAG:-latest}
+    restart: unless-stopped
     ports:
-      - "3306:3306"
-    env_file:
-      - .env
+      - "${NGINX_HTTP_PORT:-8080}:80"
+      - "${NGINX_HTTPS_PORT:-8443}:443"
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+      NGINX_HTTPS_PORT: ${NGINX_HTTPS_PORT:-8443}
+      NGINX_HSTS_MAX_AGE: ${NGINX_HSTS_MAX_AGE:-31536000}
+      PUBLIC_HOST: ${PUBLIC_HOST:-localhost}
     volumes:
-      - mariadb_data:/var/lib/mysql
-      - ./backup_banco.sql:/docker-entrypoint-initdb.d/backup_banco.sql
+      - gateway_certs:/etc/nginx/certs
+      - uploads_data:/var/www/uploads:ro
+    depends_on:
+      frontend:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      catalog-service:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/nginx-health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
     networks:
-      - kumoko_network
+      - kumoko_net
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
 
-  # 🚀 Sistema de Cache (Redis)
+  # ---------- Frontend: SPA React servida por nginx interno ----------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: ${IMAGE_REGISTRY:-kumoko-scan}/frontend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    networks:
+      - kumoko_net
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 64M
+
+  # ---------- auth-service: Identidade e Acesso ----------
+  auth-service:
+    <<: *nest-service
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        APP: auth-service
+    image: ${IMAGE_REGISTRY:-kumoko-scan}/auth-service:${IMAGE_TAG:-latest}
+    environment:
+      <<: *nest-env
+      SERVICE_NAME: auth-service
+      PORT: "3001"
+      DB_NAME: ${AUTH_DB_NAME:?defina AUTH_DB_NAME no .env}
+      DB_USER: ${AUTH_DB_USER:?defina AUTH_DB_USER no .env}
+      DB_PASSWORD: ${AUTH_DB_PASSWORD:?defina AUTH_DB_PASSWORD no .env}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+      ADMIN_NAME: ${ADMIN_NAME:?defina ADMIN_NAME no .env}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?defina ADMIN_EMAIL no .env}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?defina ADMIN_PASSWORD no .env}
+      ADMIN_CPF: ${ADMIN_CPF:?defina ADMIN_CPF no .env}
+      COOKIE_SECURE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  # ---------- catalog-service: Catalogo e Leitura ----------
+  catalog-service:
+    <<: *nest-service
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        APP: catalog-service
+    image: ${IMAGE_REGISTRY:-kumoko-scan}/catalog-service:${IMAGE_TAG:-latest}
+    environment:
+      <<: *nest-env
+      SERVICE_NAME: catalog-service
+      PORT: "3002"
+      DB_NAME: ${CATALOG_DB_NAME:?defina CATALOG_DB_NAME no .env}
+      DB_USER: ${CATALOG_DB_USER:?defina CATALOG_DB_USER no .env}
+      DB_PASSWORD: ${CATALOG_DB_PASSWORD:?defina CATALOG_DB_PASSWORD no .env}
+      CACHE_TTL_SECONDS: ${CACHE_TTL_SECONDS:-60}
+      UPLOADS_DIR: /app/uploads
+      SEED_CATALOG: ${SEED_CATALOG:-true}
+      SEED_COVERS_DIR: /app/seed/covers
+    volumes:
+      # Escrito pelo catalogo; o gateway le o mesmo volume em modo somente leitura.
+      - uploads_data:/app/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3002/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  # ---------- order-service: Vendas / Pedidos ----------
+  order-service:
+    <<: *nest-service
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        APP: order-service
+    image: ${IMAGE_REGISTRY:-kumoko-scan}/order-service:${IMAGE_TAG:-latest}
+    environment:
+      <<: *nest-env
+      SERVICE_NAME: order-service
+      PORT: "3003"
+      DB_NAME: ${ORDER_DB_NAME:?defina ORDER_DB_NAME no .env}
+      DB_USER: ${ORDER_DB_USER:?defina ORDER_DB_USER no .env}
+      DB_PASSWORD: ${ORDER_DB_PASSWORD:?defina ORDER_DB_PASSWORD no .env}
+      CACHE_TTL_SECONDS: ${CACHE_TTL_SECONDS:-60}
+      CATALOG_SERVICE_URL: http://catalog-service:3002
+      CATALOG_TIMEOUT_MS: "2000"
+      CATALOG_RETRIES: "2"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      catalog-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3003/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  # ---------- MariaDB: um banco por servico (criados por infra/mariadb/init) ----------
+  mariadb:
+    image: mariadb:11.4
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?defina MARIADB_ROOT_PASSWORD no .env}
+      MARIADB_AUTO_UPGRADE: "1"
+      AUTH_DB_NAME: ${AUTH_DB_NAME}
+      AUTH_DB_USER: ${AUTH_DB_USER}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD}
+      CATALOG_DB_NAME: ${CATALOG_DB_NAME}
+      CATALOG_DB_USER: ${CATALOG_DB_USER}
+      CATALOG_DB_PASSWORD: ${CATALOG_DB_PASSWORD}
+      ORDER_DB_NAME: ${ORDER_DB_NAME}
+      ORDER_DB_USER: ${ORDER_DB_USER}
+      ORDER_DB_PASSWORD: ${ORDER_DB_PASSWORD}
+    volumes:
+      # Volume "db_data" (e nao "mariadb_data"): o volume antigo kumoko-scan_mariadb_data guarda
+      # o banco do monolito legado com schema incompativel e deve ser preservado.
+      - db_data:/var/lib/mysql
+      - ./infra/mariadb/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - kumoko_net
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+
+  # ---------- Redis: cache-aside + Pub/Sub de eventos ----------
   redis:
-    image: redis:7-alpine
-    container_name: kumoko_redis
-    restart: always
-    ports:
-      - "6379:6379"
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    # Senha lida do ambiente do container (evita problemas de escape no YAML).
+    command:
+      - sh
+      - -c
+      - exec redis-server --requirepass "$$REDIS_PASSWORD" --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?defina REDIS_PASSWORD no .env}
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
     networks:
-      - kumoko_network
+      - kumoko_net
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 192M
 
 networks:
-  kumoko_network:
+  kumoko_net:
     driver: bridge
 
 volumes:
-  mariadb_data:
+  db_data:
   redis_data:
+  uploads_data:
+  gateway_certs:
