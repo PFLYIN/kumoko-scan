@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.build.json",
+  "compilerOptions": {
+    "declaration": true,
+    "incremental": false,
+    "outDir": "../../dist/libs/security"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/testing/**"]
+}
