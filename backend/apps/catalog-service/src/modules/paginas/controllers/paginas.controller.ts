@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   Post,
+  Put,
   Res,
   UploadedFile,
   UseInterceptors,
@@ -34,7 +35,7 @@ import {
 import type { Response } from 'express';
 import { ErrorResponseDto } from '../../../shared/dto/error-response.dto';
 import { ParseIdPipe } from '../../../shared/http/parse-id.pipe';
-import { CreatePaginaDto, PaginaResponseDto } from '../dto/pagina.dto';
+import { CreatePaginaDto, PaginaResponseDto, ReordenarPaginasDto } from '../dto/pagina.dto';
 import { PaginasService } from '../services/paginas.service';
 
 @ApiTags('paginas')
@@ -85,6 +86,27 @@ export class PaginasController {
     @UploadedFile() imagem?: Express.Multer.File,
   ): Promise<PaginaResponseDto> {
     return this.paginas.create(capituloId, dto, imagem);
+  }
+
+  @Roles('admin')
+  @Put('capitulos/:id/paginas/ordem')
+  @ApiBearerAuth()
+  @ApiCookieAuth(AUTH_COOKIE_NAME)
+  @ApiOperation({
+    summary: 'Reordena as paginas de um capitulo (admin)',
+    description:
+      'paginaIds deve conter exatamente todas as paginas do capitulo; numero passa a ser 1..N na ordem enviada. ' +
+      'Invalida os caches de paginas e de capitulos.',
+  })
+  @ApiOkResponse({ type: [PaginaResponseDto], description: 'Paginas na nova ordem' })
+  @ApiResponse({ status: 400, description: 'Lista invalida, incompleta ou com repeticoes', type: ErrorResponseDto })
+  @ApiResponse({ status: 403, description: 'Apenas administradores', type: ErrorResponseDto })
+  @ApiResponse({ status: 404, description: 'Capitulo nao encontrado', type: ErrorResponseDto })
+  reordenar(
+    @Param('id', ParseIdPipe) capituloId: number,
+    @Body() dto: ReordenarPaginasDto,
+  ): Promise<PaginaResponseDto[]> {
+    return this.paginas.reordenar(capituloId, dto);
   }
 
   @Roles('admin')

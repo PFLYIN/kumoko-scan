@@ -378,6 +378,7 @@ paths:
                     capaThumbUrl: /files/covers/2b1f0c7e-dandadan.thumb.webp
                     capaMediaUrl: /files/covers/2b1f0c7e-dandadan.medium.webp
                     totalVendido: 4
+                    totalCapitulos: 12
                     criadoEm: '2026-11-14T12:00:00.000Z'
                     atualizadoEm: '2026-11-14T12:30:00.000Z'
                 meta:
@@ -773,6 +774,54 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+
+  /api/capitulos/{id}/paginas/ordem:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    put:
+      tags: [Paginas]
+      operationId: reordenarPaginas
+      summary: Reordena as páginas do capítulo (admin)
+      description: >-
+        `paginaIds` deve conter exatamente todas as páginas do capítulo, sem repetição. Em uma transação,
+        as páginas são deslocadas (numero + 1000000) e depois renumeradas 1..N na ordem enviada, evitando
+        colisão com UNIQUE(capitulo_id, numero). Invalida `catalog:capitulos:paginas:<id>` e
+        `catalog:obras:capitulos:<obraId>`.
+      x-required-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paginaIds]
+              properties:
+                paginaIds:
+                  type: array
+                  minItems: 1
+                  maxItems: 9999
+                  items:
+                    type: integer
+                    minimum: 1
+            example:
+              paginaIds: [102, 101]
+      responses:
+        '200':
+          description: Páginas na nova ordem (numero 1..N).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaginaResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /api/paginas/{id}:
     parameters:
@@ -1293,7 +1342,7 @@ components:
 
     ObraResponse:
       type: object
-      required: [id, tipo, nome, autor, descricao, generos, volume, preco, avaliacao, capaUrl, capaThumbUrl, capaMediaUrl, totalVendido, criadoEm, atualizadoEm]
+      required: [id, tipo, nome, autor, descricao, generos, volume, preco, avaliacao, capaUrl, capaThumbUrl, capaMediaUrl, totalVendido, totalCapitulos, criadoEm, atualizadoEm]
       properties:
         id:
           type: integer
@@ -1342,6 +1391,13 @@ components:
         totalVendido:
           type: integer
           description: Atualizado pelo evento `order.completed`.
+        totalCapitulos:
+          type: integer
+          minimum: 0
+          description: >-
+            Quantidade de capítulos cadastrados (COUNT agregado em uma única consulta por lista; 0 para livro).
+            Criar/excluir capítulo invalida o cache `catalog:obras:`.
+          example: 12
         criadoEm:
           type: string
           format: date-time

@@ -57,11 +57,19 @@ test('carrinho com manga, livro e novel: quantidades, remocao e finalizacao', as
   // manga 2 x 10,50 + livro 2 x 20,00 + novel 1 x 7,25 = 68,25
   await expect(page.getByText('R$ 68,25').first()).toBeVisible();
 
+  // Modal de confirmacao com o resumo antes de criar o pedido.
   await page.getByRole('button', { name: 'Finalizar compra' }).click();
-  await expect(page).toHaveURL(/\/pedidos\?novo=\d+/);
-  const pedidoId = new URL(page.url()).searchParams.get('novo');
+  const confirmar = page.getByRole('dialog', { name: 'Confirmar pedido' });
+  await expect(confirmar).toBeVisible();
+  await expect(confirmar.getByTestId('confirmar-total')).toHaveText(/R\$\s68,25/);
+  await confirmar.getByRole('button', { name: 'Confirmar pedido' }).click();
+  await expect(page).toHaveURL(/\/pedidos\/\d+\/sucesso$/);
+  const pedidoId = page.url().match(/\/pedidos\/(\d+)\/sucesso/)[1];
   await expect(page.getByText(/Pedido #\d+ concluído! Total: R\$\s68,25/)).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(`Pedido #${pedidoId} confirmado!`);
   await expect(carrinhoBadge(page)).toHaveAccessibleName('Carrinho com 0 itens');
+  await page.getByRole('link', { name: 'Ver meus pedidos' }).click();
+  await expect(page).toHaveURL(new RegExp(`/pedidos\\?novo=${pedidoId}$`));
 
   const card = page.getByRole('article', { name: new RegExp(`Pedido #${pedidoId}`) });
   await expect(card).toContainText('recém-criado');

@@ -40,6 +40,7 @@ function setup() {
       hit: false,
     })),
     invalidate: jest.fn().mockResolvedValue(1),
+    invalidatePrefix: jest.fn().mockResolvedValue(1),
   };
   const storage = { removeDir: jest.fn() };
   const service = new CapitulosService(

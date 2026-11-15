@@ -78,11 +78,23 @@ export const catalogService = {
   },
 
   // Upload de uma pagina por requisicao (campo "imagem"); numero opcional.
-  async uploadPagina(capituloId, file, numero) {
+  // onProgress(0..100) recebe o progresso do envio (axios onUploadProgress).
+  async uploadPagina(capituloId, file, numero, { onProgress } = {}) {
     const formData = new FormData();
     formData.append('imagem', file);
     if (numero !== undefined && numero !== null && numero !== '') formData.append('numero', String(numero));
-    const { data } = await http.post(`/capitulos/${capituloId}/paginas`, formData);
+    const { data } = await http.post(`/capitulos/${capituloId}/paginas`, formData, {
+      timeout: 120000,
+      onUploadProgress: onProgress
+        ? (e) => onProgress(e.total ? Math.min(100, Math.round((e.loaded / e.total) * 100)) : 0)
+        : undefined,
+    });
+    return data;
+  },
+
+  // paginaIds: todos os ids das paginas na nova ordem -> PaginaResponse[] renumeradas 1..N.
+  async reordenarPaginas(capituloId, paginaIds) {
+    const { data } = await http.put(`/capitulos/${capituloId}/paginas/ordem`, { paginaIds });
     return data;
   },
 

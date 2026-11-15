@@ -53,6 +53,9 @@ export class ObraResponseDto {
   @ApiProperty({ example: 0 })
   totalVendido: number;
 
+  @ApiProperty({ example: 12, description: 'Quantidade de capitulos cadastrados (0 para livro).' })
+  totalCapitulos: number;
+
   @ApiProperty({ example: '2026-11-14T12:00:00.000Z' })
   criadoEm: string;
 

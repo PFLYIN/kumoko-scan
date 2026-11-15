@@ -126,7 +126,7 @@ detalhe, capítulos, busca com sugestões, destaque da home, leitor/progresso). 
 ![Catálogo filtrado por gênero](../assets/ux-cliente-1920-catalogo-generos.png)
 ![Detalhe com trilha, gêneros e relacionadas](../assets/ux-cliente-1920-detalhe.png)
 
-Pendências: drawer de carrinho no header e confirmação/tela de sucesso do checkout não foram feitos nesta rodada;
+Pendências (a confirmação/tela de sucesso do checkout foi **resolvida** — ver §8): drawer de carrinho no header e confirmação/tela de sucesso do checkout não foram feitos nesta rodada;
 o progresso de leitura não sincroniza entre dispositivos (exigiria endpoint no auth-service).
 
 ## 7. Melhorias do painel administrativo (2026-11-15)
@@ -162,7 +162,27 @@ promover/rebaixar/autoproteção, validação em tempo real + gêneros criar/edi
 ![Pedidos (admin)](../assets/admin-pedidos.png)
 ![Formulário de obra com gêneros e prévia do card](../assets/admin-obra-form.png)
 
-Pendências: reordenar páginas de um capítulo exige endpoint no catalog-service (ex.: `PATCH /api/paginas/:id { numero }`
+Pendências (reordenação de páginas e `totalCapitulos` foram **resolvidos** — ver §8): reordenar páginas de um capítulo exige endpoint no catalog-service (ex.: `PATCH /api/paginas/:id { numero }`
 ou `PUT /api/capitulos/:id/paginas/ordem`); contador de capítulos por obra no acervo exige o campo `totalCapitulos` em
 `ObraResponse`; a troca de papel só vale no próximo login (o JWT atual mantém o papel até expirar — revogar exigiria
 versão de token/denylist); o menu da conta ainda leva direto a "Gerenciar acervo" (arquivo do header, outra frente).
+
+## 8. Pendências resolvidas (2026-11-15)
+
+Fecha as pendências das seções 6 e 7 que dependiam de backend/fluxos novos.
+
+| Pendência | Status | Solução |
+|---|---|---|
+| Reordenar páginas de um capítulo (§7) | **Resolvida** | `PUT /api/capitulos/:id/paginas/ordem` `{ paginaIds }` (admin). Exige exatamente todas as páginas do capítulo, sem repetição (400 caso contrário; 404 capítulo inexistente). Em uma transação com lock pessimista: desloca todas para `numero + 1000000` e grava 1..N, sem colidir com `UNIQUE(capitulo_id, numero)`. Invalida `catalog:capitulos:paginas:<id>` e `catalog:obras:capitulos:<obraId>`. No admin (Páginas do capítulo): **arrastar e soltar** (HTML5 DnD) e botões **mover para cima/baixo** (teclado), "Ordem alterada (não salva)", **Salvar ordem**/**Desfazer**, anúncio em `aria-live`. O leitor passa a exibir a nova ordem |
+| Contador de capítulos no acervo (§7) | **Resolvida** | `totalCapitulos` em `ObraResponse` (listas, detalhe, relacionadas e lote) via **um único** `COUNT ... GROUP BY obra_id` por resposta (sem N+1); 0 para livro. Criar/excluir capítulo invalida `catalog:obras:`. Coluna **Capítulos** no acervo admin (após "Vendidos"; "—" para livro) |
+| Confirmação e tela de sucesso do checkout (§6) | **Resolvida** | "Finalizar compra" abre **modal de confirmação** (itens, quantidade × preço, total estimado e aviso de que o preço final vem do catálogo; Esc/"Voltar ao carrinho" cancela). Após o pedido: `/pedidos/:id/sucesso` com número, itens, total pago, **Ver meus pedidos** e **Continuar comprando**. A `Idempotency-Key` continua estável enquanto o carrinho não muda |
+| Upload de páginas sem feedback por arquivo | **Resolvida** | Lista de envio com **barra de progresso por arquivo** (`onUploadProgress`, `role="progressbar"`), status **Aguardando/Enviando/Enviada/Erro** com a mensagem do servidor, e **Tentar novamente** apenas para os que falharam |
+
+Testes: unitários novos no catalog-service (`paginas.service.spec.ts` +3: reordenação com offset antes da renumeração,
+validação 400 e 404; `obras.service.spec.ts` +1: COUNT agrupado único). E2E `e2e/pendencias.spec.js` — 5 testes × 2
+resoluções (API de reordenação/validação/cache/401, reordenação na UI por teclado e arrastar + leitor, `totalCapitulos`
+na API e no acervo, upload com falha simulada e retry, checkout com modal/cancelamento/idempotency key/tela de sucesso).
+`e2e/cliente-compra.spec.js` foi ajustado ao novo fluxo (modal → `/pedidos/:id/sucesso` → "Ver meus pedidos").
+
+Pendências que continuam: drawer de carrinho no header; progresso de leitura sem sincronização entre dispositivos;
+troca de papel só vale no próximo login; menu da conta ainda leva direto a "Gerenciar acervo".

@@ -13,6 +13,7 @@ import PageHeader from '../../components/ui/PageHeader.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import CarrinhoItem from './CarrinhoItem.jsx';
 import CarrinhoResumo from './CarrinhoResumo.jsx';
+import ConfirmarPedidoDialog from './ConfirmarPedidoDialog.jsx';
 
 export default function CarrinhoPage() {
   useDocumentTitle('Carrinho');
@@ -22,6 +23,7 @@ export default function CarrinhoPage() {
   const navigate = useNavigate();
 
   const [enviando, setEnviando] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
   const [catalogoIndisponivel, setCatalogoIndisponivel] = useState(false);
   // Mesma chave enquanto o conteudo do carrinho nao muda: um retry apos falha de rede
   // nao gera pedido duplicado (o backend devolve o pedido ja criado).
@@ -46,7 +48,8 @@ export default function CarrinhoPage() {
 
   const indisponiveis = items.filter((i) => i.snapshot.indisponivel);
 
-  const finalizar = async () => {
+  // 1o passo: valida e abre o modal de confirmacao com o resumo.
+  const finalizar = () => {
     if (indisponiveis.length) {
       toast.error('Remova as obras indisponíveis antes de finalizar.');
       return;
@@ -56,7 +59,11 @@ export default function CarrinhoPage() {
       navigate('/entrar?redirect=/carrinho');
       return;
     }
+    setConfirmando(true);
+  };
 
+  // 2o passo (confirmado no modal): cria o pedido com a idempotency key.
+  const confirmarPedido = async () => {
     const chave = idempotency.assinatura === assinatura && idempotency.chave ? idempotency.chave : generateUuid();
     setIdempotency({ assinatura, chave });
     setEnviando(true);
@@ -64,11 +71,13 @@ export default function CarrinhoPage() {
 
     try {
       const pedido = await ordersService.createPedido(items, chave);
+      setConfirmando(false);
       clear();
       setIdempotency({ assinatura: null, chave: null });
       toast.success(`Pedido #${pedido.id} concluído! Total: ${formatPreco(pedido.total)}`);
-      navigate(`/pedidos?novo=${pedido.id}`);
+      navigate(`/pedidos/${pedido.id}/sucesso`);
     } catch (err) {
+      setConfirmando(false);
       if (err.status === 503) {
         setCatalogoIndisponivel(true);
       } else if (err.status === 401) {
@@ -143,6 +152,16 @@ export default function CarrinhoPage() {
           onFinalizar={finalizar}
         />
       </div>
+
+      <ConfirmarPedidoDialog
+        open={confirmando}
+        items={items}
+        totalItens={totalItens}
+        totalEstimado={totalEstimado}
+        enviando={enviando}
+        onConfirm={confirmarPedido}
+        onCancel={() => setConfirmando(false)}
+      />
     </div>
   );
 }

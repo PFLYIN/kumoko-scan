@@ -133,15 +133,16 @@ export class ObrasService {
       qb.addOrderBy('o.id', filtros.ordenar === OrdenacaoObras.Recentes ? 'DESC' : 'ASC');
       const { skip, take } = toSkipTake({ page: filtros.page, limit: filtros.limit });
       const [rows, total] = await qb.skip(skip).take(take).getManyAndCount();
-      return paginate(rows.map(toObraResponse), total, { page: filtros.page, limit: filtros.limit });
+      return paginate(await this.comTotais(rows), total, { page: filtros.page, limit: filtros.limit });
     });
   }
 
   async findById(id: number): Promise<CacheResult<ObraResponseDto>> {
     // Se a obra nao existe o loader lanca 404 e nada e cacheado.
-    return this.cache.getOrSet(CatalogCacheKeys.obra(id), this.settings.cacheTtlSeconds, async () =>
-      toObraResponse(await this.getEntity(id)),
-    );
+    return this.cache.getOrSet(CatalogCacheKeys.obra(id), this.settings.cacheTtlSeconds, async () => {
+      const [resposta] = await this.comTotais([await this.getEntity(id)]);
+      return resposta;
+    });
   }
 
   /** Generos em uso com a quantidade de obras (alimenta o filtro do catalogo). */
@@ -164,9 +165,7 @@ export class ObrasService {
           take: RELACIONADAS_CANDIDATAS_MAX,
         });
         const comGeneros = candidatas.map((obra) => ({ ...obra, generos: obra.generos ?? [] }));
-        return rankearRelacionadas({ ...base, generos: base.generos ?? [] }, comGeneros, limit).map((obra) =>
-          toObraResponse(obra),
-        );
+        return this.comTotais(rankearRelacionadas({ ...base, generos: base.generos ?? [] }, comGeneros, limit));
       },
     );
   }
@@ -176,10 +175,7 @@ export class ObrasService {
     const ids = dominio(() => parseLoteIds(rawIds));
     const encontradas = await this.obras.findBy({ id: In(ids) });
     const porId = new Map(encontradas.map((obra) => [obra.id, obra]));
-    const resultado = ids.flatMap((id) => {
-      const obra = porId.get(id);
-      return obra ? [toObraResponse(obra)] : [];
-    });
+    const resultado = await this.comTotais(ids.flatMap((id) => porId.get(id) ?? []));
     this.logger.log(`Lote de obras consultado pedidos=${ids.length} encontrados=${resultado.length}`);
     return resultado;
   }
@@ -226,6 +222,24 @@ export class ObrasService {
     this.logger.log(`Obra criada obraId=${obra.id} tipo=${obra.tipo} preco=${Number(obra.preco).toFixed(2)}`);
     await this.aposEscrita(obra);
     return toObraResponse(obra);
+  }
+
+  /** Mapeia obras para resposta com totalCapitulos via um unico COUNT agrupado (sem N+1). */
+  private async comTotais(obras: Obra[]): Promise<ObraResponseDto[]> {
+    const ids = obras.map((obra) => obra.id);
+    const totais = new Map<number, number>();
+    if (ids.length > 0) {
+      const rows = await this.obras.query<{ obraId?: number | string; total: number | string }[]>(
+        'SELECT obra_id AS obraId, COUNT(*) AS total FROM capitulos WHERE obra_id IN (?) GROUP BY obra_id',
+        [ids],
+      );
+      for (const row of rows ?? []) {
+        if (row.obraId !== undefined && row.obraId !== null) {
+          totais.set(Number(row.obraId), Number(row.total));
+        }
+      }
+    }
+    return obras.map((obra) => toObraResponse(obra, totais.get(obra.id) ?? 0));
   }
 
   /** Livros nao tem capitulos: impede mudar para livro enquanto houver capitulos. */
@@ -283,7 +297,8 @@ export class ObrasService {
       `Obra atualizada obraId=${salva.id} tipo=${salva.tipo} preco=${Number(salva.preco).toFixed(2)}`,
     );
     await this.aposEscrita(salva);
-    return toObraResponse(salva);
+    const [resposta] = await this.comTotais([salva]);
+    return resposta;
   }
 
   async remove(id: number): Promise<void> {

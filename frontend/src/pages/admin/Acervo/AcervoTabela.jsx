@@ -33,6 +33,9 @@ export default function AcervoTabela({ obras, onExcluir, ordenar, onOrdenar }) {
             <Ordenavel label="Preço" asc="preco-asc" desc="preco-desc" ordenar={ordenar} onOrdenar={onOrdenar} className="text-right" />
             <Ordenavel label="Vendidos" desc="mais-vendidos" ordenar={ordenar} onOrdenar={onOrdenar} className="text-right" />
             <th scope="col" className="px-4 py-2.5 text-right">
+              Capítulos
+            </th>
+            <th scope="col" className="px-4 py-2.5 text-right">
               Ações
             </th>
           </tr>
@@ -57,6 +60,13 @@ export default function AcervoTabela({ obras, onExcluir, ordenar, onOrdenar }) {
               </td>
               <td className="text-zinc-200 md:px-4 md:py-2 md:text-right">{formatPreco(obra.preco)}</td>
               <td className="hidden text-zinc-400 md:table-cell md:px-4 md:py-2 md:text-right">{obra.totalVendido}</td>
+              <td
+                className="hidden text-zinc-400 md:table-cell md:px-4 md:py-2 md:text-right"
+                data-testid="total-capitulos"
+                title={tipoTemCapitulos(obra.tipo) ? undefined : 'Livros não têm capítulos'}
+              >
+                {tipoTemCapitulos(obra.tipo) ? (obra.totalCapitulos ?? 0) : '—'}
+              </td>
               <td className="w-full md:w-auto md:px-4 md:py-2">
                 <div className="flex justify-end gap-1">
                   {tipoTemCapitulos(obra.tipo) ? (

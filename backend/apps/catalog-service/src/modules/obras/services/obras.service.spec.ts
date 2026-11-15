@@ -206,6 +206,24 @@ describe('ObrasService', () => {
     expect(res.map((o) => o.id)).toEqual([2, 1]);
   });
 
+  it('totalCapitulos: um unico COUNT agrupado para o lote (sem N+1), 0 quando nao ha capitulos', async () => {
+    const { service, repo } = setup();
+    repo.findBy.mockResolvedValue([obraFake({ id: 1 }), obraFake({ id: 2 }), obraFake({ id: 3 })]);
+    repo.query.mockResolvedValueOnce([
+      { obraId: 1, total: '4' },
+      { obraId: '3', total: 2 },
+    ]);
+    const res = await service.findLote('1,2,3');
+    expect(res.map((o) => [o.id, o.totalCapitulos])).toEqual([
+      [1, 4],
+      [2, 0],
+      [3, 2],
+    ]);
+    expect(repo.query).toHaveBeenCalledTimes(1);
+    expect(repo.query.mock.calls[0][0]).toContain('GROUP BY obra_id');
+    expect(repo.query.mock.calls[0][1]).toEqual([[1, 2, 3]]);
+  });
+
   it('create/update: normaliza generos (dedup, caixa) e PATCH sem generos mantem a lista', async () => {
     const { service, repo } = setup();
     await service.create({ tipo: TipoObra.Manga, nome: 'X', preco: 10, generos: ['acao', 'Ação', 'isekai'] });
