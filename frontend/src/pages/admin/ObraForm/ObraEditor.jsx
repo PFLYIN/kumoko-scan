@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Save } from 'lucide-react';
 import { useToast } from '../../../hooks/useToast.js';
-import { TIPOS_OBRA, tipoTemVolume } from '../../../utils/format.js';
+import { TIPOS_OBRA, tipoTemCapitulos, tipoTemVolume } from '../../../utils/format.js';
 import FormField from '../../../components/ui/FormField.jsx';
 import Spinner from '../../../components/ui/Spinner.jsx';
 import CapaInput from './CapaInput.jsx';
@@ -89,7 +89,15 @@ export default function ObraEditor({ obra, onSalvar }) {
 
       <div className="flex flex-col gap-4">
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Tipo" error={erros.tipo}>
+          <FormField
+            label="Tipo"
+            error={erros.tipo}
+            hint={
+              tipoTemCapitulos(form.tipo)
+                ? 'Mangás e light novels têm volume e capítulos para leitura online.'
+                : 'Livros não têm volume nem capítulos online (venda da edição completa).'
+            }
+          >
             <select className="field-input" value={form.tipo} onChange={set('tipo')}>
               {TIPOS_OBRA.map((t) => (
                 <option key={t.value} value={t.value} className="bg-ink-800">

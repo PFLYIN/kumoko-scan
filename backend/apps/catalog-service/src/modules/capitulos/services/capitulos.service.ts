@@ -1,4 +1,10 @@
-import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CacheService, type CacheResult } from '@kumoko/cache';
 import { In, type Repository } from 'typeorm';
@@ -8,6 +14,7 @@ import { isDuplicateEntryError } from '../../../shared/database/database-errors'
 import { FileStorageService } from '../../../shared/storage/file-storage.service';
 import { StoragePaths } from '../../../shared/storage/storage-paths';
 import { OBRA_NAO_ENCONTRADA } from '../../obras/services/obras.service';
+import { tipoAceitaCapitulos } from '../../obras/domain/tipo-obra';
 import { Obra } from '../../obras/entities/obra.entity';
 import { Pagina } from '../../paginas/entities/pagina.entity';
 import type { CapituloResponseDto, CreateCapituloDto, UpdateCapituloDto } from '../dto/capitulo.dto';
@@ -15,6 +22,8 @@ import { Capitulo } from '../entities/capitulo.entity';
 import { toCapituloResponse } from '../mappers/capitulo.mapper';
 
 export const CAPITULO_NAO_ENCONTRADO = 'Capítulo não encontrado.';
+export const CAPITULOS_NAO_PERMITIDOS =
+  'Livros não têm capítulos para leitura online. Apenas mangás e light novels aceitam capítulos.';
 export const CAPITULO_DUPLICADO = 'Já existe um capítulo com este número nesta obra.';
 
 @Injectable()
@@ -44,7 +53,13 @@ export class CapitulosService {
   }
 
   async create(obraId: number, dto: CreateCapituloDto): Promise<CapituloResponseDto> {
-    await this.assertObraExiste(obraId);
+    const obra = await this.obras.findOne({ where: { id: obraId }, select: { id: true, tipo: true } });
+    if (!obra) {
+      throw new NotFoundException(OBRA_NAO_ENCONTRADA);
+    }
+    if (!tipoAceitaCapitulos(obra.tipo)) {
+      throw new UnprocessableEntityException(CAPITULOS_NAO_PERMITIDOS);
+    }
     let capitulo: Capitulo;
     try {
       capitulo = await this.capitulos.save(

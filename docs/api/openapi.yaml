@@ -409,6 +409,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          description: Mudança para livro de uma obra que ainda tem capítulos (livros não têm capítulos online).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
     delete:
       tags: [Obras]
       operationId: excluirObra
@@ -493,6 +499,12 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '422':
+          description: A obra é um livro; apenas mangás e light novels aceitam capítulos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
 
   /api/capitulos/{id}:
     parameters:

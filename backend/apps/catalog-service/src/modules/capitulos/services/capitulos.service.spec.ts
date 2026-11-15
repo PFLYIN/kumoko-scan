@@ -1,4 +1,4 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import type { CacheService } from '@kumoko/cache';
 import type { Repository } from 'typeorm';
 import type { CatalogSettings } from '../../../config/catalog-settings';
@@ -22,7 +22,10 @@ function setup() {
     create: jest.fn((c: Partial<Capitulo>) => c),
     delete: jest.fn(),
   };
-  const obras = { existsBy: jest.fn().mockResolvedValue(true) };
+  const obras = {
+    existsBy: jest.fn().mockResolvedValue(true),
+    findOne: jest.fn().mockResolvedValue({ id: 1, tipo: 'manga' }),
+  };
   const qb = {
     select: jest.fn().mockReturnThis(),
     addSelect: jest.fn().mockReturnThis(),
@@ -67,8 +70,15 @@ describe('CapitulosService', () => {
 
   it('404 quando a obra nao existe', async () => {
     const { service, obras } = setup();
-    obras.existsBy.mockResolvedValue(false);
+    obras.findOne.mockResolvedValue(null);
     await expect(service.create(1, { numero: 1 })).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('422 ao criar capitulo em livro (livros nao tem leitura online)', async () => {
+    const { service, obras, capitulos } = setup();
+    obras.findOne.mockResolvedValue({ id: 1, tipo: 'livro' });
+    await expect(service.create(1, { numero: 1 })).rejects.toBeInstanceOf(UnprocessableEntityException);
+    expect(capitulos.save).not.toHaveBeenCalled();
   });
 
   it('409 em numero duplicado (ER_DUP_ENTRY)', async () => {

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { BookOpen, Pencil, Trash2 } from 'lucide-react';
-import { formatPreco } from '../../../utils/format.js';
+import { formatPreco, tipoTemCapitulos } from '../../../utils/format.js';
 import ObraCover from '../../../components/obras/ObraCover.jsx';
 import TipoBadge from '../../../components/obras/TipoBadge.jsx';
 
@@ -51,6 +51,7 @@ export default function AcervoTabela({ obras, onExcluir }) {
               <td className="hidden text-zinc-400 md:table-cell md:px-4 md:py-3 md:text-right">{obra.totalVendido}</td>
               <td className="w-full md:w-auto md:px-4 md:py-3">
                 <div className="flex justify-end gap-1">
+                  {tipoTemCapitulos(obra.tipo) ? (
                   <Link
                     to={`/admin/obras/${obra.id}/capitulos`}
                     className="rounded-lg p-2 text-zinc-400 hover:bg-white/10 hover:text-brand-300"
@@ -59,6 +60,9 @@ export default function AcervoTabela({ obras, onExcluir }) {
                   >
                     <BookOpen className="size-4" aria-hidden="true" />
                   </Link>
+                  ) : (
+                    <span className="size-8" aria-hidden="true" />
+                  )}
                   <Link
                     to={`/admin/obras/${obra.id}/editar`}
                     className="rounded-lg p-2 text-zinc-400 hover:bg-white/10 hover:text-brand-300"

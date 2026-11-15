@@ -44,7 +44,13 @@ export default function CarrinhoPage() {
     };
   }, [idsKey, refreshSnapshots]);
 
+  const indisponiveis = items.filter((i) => i.snapshot.indisponivel);
+
   const finalizar = async () => {
+    if (indisponiveis.length) {
+      toast.error('Remova as obras indisponíveis antes de finalizar.');
+      return;
+    }
     if (!isAuthenticated) {
       toast.info('Entre na sua conta para finalizar a compra.');
       navigate('/entrar?redirect=/carrinho');
@@ -96,6 +102,13 @@ export default function CarrinhoPage() {
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <PageHeader title="Meu carrinho" subtitle={`${totalItens} ${totalItens === 1 ? 'item' : 'itens'} no carrinho`} />
 
+      {indisponiveis.length > 0 && (
+        <div role="alert" className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
+          {indisponiveis.length === 1 ? 'Uma obra do carrinho não está' : `${indisponiveis.length} obras do carrinho não estão`} mais
+          no catálogo. Remova para finalizar o pedido.
+        </div>
+      )}
+
       {catalogoIndisponivel && (
         <div
           role="alert"
@@ -125,7 +138,7 @@ export default function CarrinhoPage() {
         <CarrinhoResumo
           totalEstimado={totalEstimado}
           enviando={enviando}
-          podeFinalizar={!authLoading}
+          podeFinalizar={!authLoading && indisponiveis.length === 0}
           isAuthenticated={isAuthenticated}
           onFinalizar={finalizar}
         />

@@ -7,6 +7,7 @@ import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
 import PageHeader from '../../../components/ui/PageHeader.jsx';
 import LoadingState from '../../../components/ui/LoadingState.jsx';
 import ErrorState from '../../../components/ui/ErrorState.jsx';
+import { tipoTemCapitulos } from '../../../utils/format.js';
 import ObraEditor from './ObraEditor.jsx';
 
 // Mesma pagina para /admin/obras/nova e /admin/obras/:id/editar.
@@ -25,7 +26,8 @@ export default function ObraFormPage() {
   const salvar = async (formData) => {
     const salva = editando ? await catalogService.updateObra(id, formData) : await catalogService.createObra(formData);
     toast.success(editando ? 'Obra atualizada.' : `"${salva.nome}" cadastrada no acervo.`);
-    navigate(editando ? '/admin/acervo' : `/admin/obras/${salva.id}/capitulos`);
+    // Depois de cadastrar, mangas e novels seguem para os capitulos; livros voltam ao acervo.
+    navigate(editando || !tipoTemCapitulos(salva.tipo) ? '/admin/acervo' : `/admin/obras/${salva.id}/capitulos`);
   };
 
   return (

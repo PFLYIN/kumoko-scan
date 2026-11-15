@@ -35,6 +35,11 @@ export function tipoLabel(tipo) {
   return TIPOS_OBRA.find((t) => t.value === tipo)?.label ?? tipo;
 }
 
+// Somente mangas e light novels tem capitulos para leitura online; livros sao vendidos fechados.
+export function tipoTemCapitulos(tipo) {
+  return tipo === 'manga' || tipo === 'novel';
+}
+
 // Volume so faz sentido para obras seriadas.
 export function tipoTemVolume(tipo) {
   return tipo === 'manga' || tipo === 'novel';

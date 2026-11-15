@@ -28,7 +28,14 @@ import {
   ApiExtraModels,
 } from '@nestjs/swagger';
 import { setCacheHeader } from '@kumoko/cache';
-import { AUTH_COOKIE_NAME, createImageUploadOptions, Public, Roles } from '@kumoko/security';
+import {
+  AUTH_COOKIE_NAME,
+  createImageUploadOptions,
+  Public,
+  PUBLIC_READ_THROTTLE,
+  Roles,
+  Throttle,
+} from '@kumoko/security';
 import type { Response } from 'express';
 import { ErrorResponseDto } from '../../../shared/dto/error-response.dto';
 import { ParseIdPipe } from '../../../shared/http/parse-id.pipe';
@@ -50,6 +57,7 @@ export class ObrasController {
   constructor(private readonly obras: ObrasService) {}
 
   @Public()
+  @Throttle(PUBLIC_READ_THROTTLE)
   @Get()
   @ApiOperation({ summary: 'Lista obras com filtros, busca, ordenacao e paginacao (cache)' })
   @ApiOkResponse({ type: PaginatedObrasResponseDto, headers: CACHE_HEADER_DOC })
@@ -62,6 +70,7 @@ export class ObrasController {
 
   // Declarada ANTES de :id para "lote" nao ser interpretado como id.
   @Public()
+  @Throttle(PUBLIC_READ_THROTTLE)
   @Get('lote')
   @ApiOperation({
     summary: `Busca varias obras por id (maximo ${LOTE_MAX_IDS}); ids inexistentes sao ignorados`,
@@ -78,6 +87,7 @@ export class ObrasController {
   }
 
   @Public()
+  @Throttle(PUBLIC_READ_THROTTLE)
   @Get(':id')
   @ApiOperation({ summary: 'Detalhe de uma obra (cache)' })
   @ApiOkResponse({ type: ObraResponseDto, headers: CACHE_HEADER_DOC })

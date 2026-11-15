@@ -13,7 +13,8 @@ import ObraGrid from '../../components/obras/ObraGrid.jsx';
 import ObraGridSkeleton from '../../components/obras/ObraGridSkeleton.jsx';
 import ObraFiltros from '../../components/obras/ObraFiltros.jsx';
 
-const LIMIT = 18;
+// 24 fecha linhas completas em 3, 4, 6 e 8 colunas (grade de 1366 a 1920 px).
+const LIMIT = 24;
 
 // Le os filtros da URL (fonte da verdade), descartando valores invalidos.
 function readFiltros(searchParams) {
@@ -53,7 +54,7 @@ export default function CatalogoPage() {
   const meta = data?.meta;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+    <div className="mx-auto max-w-7xl 2xl:max-w-[96rem] px-4 py-10 sm:px-6">
       <PageHeader
         title={tituloTipo ?? 'Catálogo'}
         subtitle={

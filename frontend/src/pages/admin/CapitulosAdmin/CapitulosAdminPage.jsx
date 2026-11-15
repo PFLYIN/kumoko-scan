@@ -5,7 +5,7 @@ import { catalogService } from '../../../services/catalog.service.js';
 import { useFetch } from '../../../hooks/useFetch.js';
 import { useToast } from '../../../hooks/useToast.js';
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
-import { formatNumeroCapitulo } from '../../../utils/format.js';
+import { formatNumeroCapitulo, tipoTemCapitulos } from '../../../utils/format.js';
 import PageHeader from '../../../components/ui/PageHeader.jsx';
 import LoadingState from '../../../components/ui/LoadingState.jsx';
 import ErrorState from '../../../components/ui/ErrorState.jsx';
@@ -70,8 +70,25 @@ export default function CapitulosAdminPage() {
     );
   }
 
+  if (!tipoTemCapitulos(obra.tipo)) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16">
+        <EmptyState
+          icon={BookOpen}
+          title="Livros não têm capítulos"
+          description={`"${obra.nome}" é um livro: ele é vendido como edição completa, sem leitura online. Para publicar capítulos, mude o tipo para mangá ou light novel.`}
+          action={
+            <Link to={`/admin/obras/${obra.id}/editar`} className="btn-secondary">
+              <Pencil className="size-4" aria-hidden="true" /> Editar obra
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 2xl:max-w-6xl">
       <Link to="/admin/acervo" className="mb-6 inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-brand-300">
         <ArrowLeft className="size-4" aria-hidden="true" /> Voltar ao acervo
       </Link>

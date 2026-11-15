@@ -36,6 +36,7 @@ export const router = createBrowserRouter([
         element: <ProtectedRoute />,
         children: [
           { path: 'pedidos', lazy: lazyPage(() => import('../pages/Pedidos/PedidosPage.jsx')) },
+          { path: 'pedidos/:id', lazy: lazyPage(() => import('../pages/Pedidos/PedidoDetalhePage.jsx')) },
           { path: 'perfil', lazy: lazyPage(() => import('../pages/Perfil/PerfilPage.jsx')) },
         ],
       },

@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CacheService, type CacheResult } from '@kumoko/cache';
 import { paginate, toSkipTake, type Paginated } from '@kumoko/common';
@@ -20,6 +26,10 @@ import { ObraDomainError } from '../domain/obra-domain.error';
 import { aplicarAlteracao, AVALIACAO_PADRAO, normalizarObra, type DadosObra } from '../domain/obra-rules';
 import { OrdenacaoObras } from '../domain/ordenacao-obras';
 import { parseLoteIds } from '../domain/lote-ids';
+import { tipoAceitaCapitulos } from '../domain/tipo-obra';
+
+export const TIPO_COM_CAPITULOS =
+  'Esta obra tem capítulos cadastrados. Exclua os capítulos antes de mudar o tipo para livro.';
 
 export const OBRA_NAO_ENCONTRADA = 'Obra não encontrada.';
 
@@ -174,6 +184,17 @@ export class ObrasService {
     return toObraResponse(obra);
   }
 
+  /** Livros nao tem capitulos: impede mudar para livro enquanto houver capitulos. */
+  private async assertSemCapitulos(obraId: number): Promise<void> {
+    const rows = await this.obras.query<{ total: number | string }[]>(
+      'SELECT COUNT(*) AS total FROM capitulos WHERE obra_id = ?',
+      [obraId],
+    );
+    if (Number(rows[0]?.total ?? 0) > 0) {
+      throw new ConflictException(TIPO_COM_CAPITULOS);
+    }
+  }
+
   async update(id: number, dto: UpdateObraDto, capa?: Express.Multer.File): Promise<ObraResponseDto> {
     const obra = await this.getEntity(id);
     const dados = dominio(() =>
@@ -187,6 +208,9 @@ export class ObrasService {
         avaliacao: dto.avaliacao,
       }),
     );
+    if (!tipoAceitaCapitulos(dados.tipo) && tipoAceitaCapitulos(obra.tipo)) {
+      await this.assertSemCapitulos(id);
+    }
     const arquivosAntigos = arquivosDaCapa(obra);
     const novaCapa = capa ? await this.storage.saveImage(StoragePaths.coversDir, capa.buffer) : null;
     const variantes = await this.gerarVariantes(novaCapa);

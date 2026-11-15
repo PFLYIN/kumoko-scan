@@ -23,7 +23,14 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { setCacheHeader } from '@kumoko/cache';
-import { AUTH_COOKIE_NAME, createImageUploadOptions, Public, Roles } from '@kumoko/security';
+import {
+  AUTH_COOKIE_NAME,
+  createImageUploadOptions,
+  Public,
+  PUBLIC_READ_THROTTLE,
+  Roles,
+  Throttle,
+} from '@kumoko/security';
 import type { Response } from 'express';
 import { ErrorResponseDto } from '../../../shared/dto/error-response.dto';
 import { ParseIdPipe } from '../../../shared/http/parse-id.pipe';
@@ -36,6 +43,7 @@ export class PaginasController {
   constructor(private readonly paginas: PaginasService) {}
 
   @Public()
+  @Throttle(PUBLIC_READ_THROTTLE)
   @Get('capitulos/:id/paginas')
   @ApiOperation({ summary: 'Lista as paginas de um capitulo em ordem (cache)' })
   @ApiOkResponse({

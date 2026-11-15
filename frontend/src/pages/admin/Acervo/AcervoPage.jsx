@@ -62,7 +62,7 @@ export default function AcervoPage() {
   const obras = data?.data ?? [];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+    <div className="mx-auto max-w-7xl 2xl:max-w-[96rem] px-4 py-10 sm:px-6">
       <PageHeader
         title="Gerenciar acervo"
         subtitle={data?.meta ? `${data.meta.total} obra(s) cadastrada(s)` : 'Obras, capas e capítulos do catálogo.'}

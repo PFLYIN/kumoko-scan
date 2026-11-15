@@ -21,7 +21,11 @@ export default function CarrinhoItem({ item, onQuantidade, onRemover, disabled }
             <Link to={`/obras/${obraId}`} className="block truncate font-medium text-zinc-100 hover:text-brand-300">
               {snapshot.nome}
             </Link>
-            <p className="text-sm text-zinc-400">{formatPreco(snapshot.preco)} cada</p>
+            {snapshot.indisponivel ? (
+              <p className="text-sm font-medium text-amber-300">Indisponível: removida do catálogo</p>
+            ) : (
+              <p className="text-sm text-zinc-400">{formatPreco(snapshot.preco)} cada</p>
+            )}
           </div>
           <button
             type="button"

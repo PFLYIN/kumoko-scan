@@ -47,7 +47,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section aria-label="Categorias" className="mx-auto max-w-7xl px-4 pt-12 sm:px-6">
+      <section aria-label="Categorias" className="mx-auto max-w-7xl 2xl:max-w-[96rem] px-4 pt-12 sm:px-6">
         <ul className="grid gap-4 sm:grid-cols-3">
           {CATEGORIAS.map(({ tipo, titulo, descricao, icon: Icon }) => (
             <li key={tipo}>

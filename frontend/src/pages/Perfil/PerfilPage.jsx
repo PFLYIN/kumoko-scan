@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LibraryBig, LogOut, Receipt, ShieldCheck, UserRound, Wallet } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -9,7 +10,12 @@ import PerfilSenhaForm from './PerfilSenhaForm.jsx';
 
 export default function PerfilPage() {
   useDocumentTitle('Meu perfil');
-  const { user, isAdmin, logout } = useAuth();
+  const { user, isAdmin, logout, refreshUser } = useAuth();
+
+  // O total investido e atualizado de forma assincrona (evento order.completed): busca o valor atual ao abrir.
+  useEffect(() => {
+    refreshUser().catch(() => {});
+  }, [refreshUser]);
   const toast = useToast();
   const navigate = useNavigate();
 

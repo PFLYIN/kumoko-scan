@@ -1,4 +1,5 @@
-import { Link, useParams } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ImageOff } from 'lucide-react';
 import { catalogService } from '../../services/catalog.service.js';
 import { useFetch } from '../../hooks/useFetch.js';
@@ -28,6 +29,18 @@ export default function LeitorPage() {
   const anterior = indice > 0 ? capitulos[indice - 1] : null;
   const proximo = indice >= 0 && indice < capitulos.length - 1 ? capitulos[indice + 1] : null;
   const tituloCapitulo = atual ? `Capítulo ${formatNumeroCapitulo(atual.numero)}` : 'Capítulo';
+
+  // Atalhos de teclado no desktop: setas esquerda/direita trocam de capitulo.
+  const navigate = useNavigate();
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.altKey || e.ctrlKey || e.metaKey || /input|textarea|select/i.test(e.target.tagName)) return;
+      const destino = e.key === 'ArrowLeft' ? anterior : e.key === 'ArrowRight' ? proximo : null;
+      if (destino) navigate(`/obras/${obraId}/capitulos/${destino.id}`);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [anterior, proximo, obraId, navigate]);
 
   useDocumentTitle(data?.obra ? `${data.obra.nome} - ${tituloCapitulo}` : 'Leitor');
 

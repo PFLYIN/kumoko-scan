@@ -1,10 +1,10 @@
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, BookX } from 'lucide-react';
+import { ArrowLeft, BookX, PackageCheck } from 'lucide-react';
 import { catalogService } from '../../services/catalog.service.js';
 import { useFetch } from '../../hooks/useFetch.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
-import { formatPreco, tipoLabel } from '../../utils/format.js';
+import { formatPreco, tipoLabel, tipoTemCapitulos } from '../../utils/format.js';
 import LoadingState from '../../components/ui/LoadingState.jsx';
 import ErrorState from '../../components/ui/ErrorState.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
@@ -44,18 +44,19 @@ export default function ObraDetalhesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 2xl:max-w-7xl">
       <Link to="/catalogo" className="mb-6 inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-brand-300">
         <ArrowLeft className="size-4" aria-hidden="true" /> Voltar ao catálogo
       </Link>
 
-      <article className="grid gap-8 md:grid-cols-[minmax(0,18rem)_1fr] lg:gap-12">
+      <article className="grid gap-8 md:grid-cols-[minmax(0,18rem)_1fr] lg:gap-12 2xl:grid-cols-[22rem_1fr]">
         <ObraCover
           src={obra.capaMediaUrl ?? obra.capaUrl}
           alt={`Capa de ${obra.nome}`}
+          titulo={obra.nome}
           width={720}
           height={1080}
-          className="mx-auto aspect-[2/3] w-full max-w-72 rounded-2xl shadow-2xl ring-1 shadow-black/50 ring-white/10"
+          className="mx-auto aspect-[2/3] w-full max-w-72 rounded-2xl 2xl:max-w-88 shadow-2xl ring-1 shadow-black/50 ring-white/10"
         />
 
         <div className="flex flex-col gap-5">
@@ -84,9 +85,11 @@ export default function ObraDetalhesPage() {
               <Link to={`/admin/obras/${obra.id}/editar`} className="btn-secondary">
                 Editar obra
               </Link>
-              <Link to={`/admin/obras/${obra.id}/capitulos`} className="btn-secondary">
-                Gerenciar capítulos
-              </Link>
+              {tipoTemCapitulos(obra.tipo) && (
+                <Link to={`/admin/obras/${obra.id}/capitulos`} className="btn-secondary">
+                  Gerenciar capítulos
+                </Link>
+              )}
             </div>
           )}
 
@@ -101,7 +104,14 @@ export default function ObraDetalhesPage() {
         </div>
       </article>
 
-      <CapitulosLista obraId={obra.id} />
+      {tipoTemCapitulos(obra.tipo) ? (
+        <CapitulosLista obraId={obra.id} />
+      ) : (
+        <p className="mt-12 flex items-center gap-3 rounded-xl border border-white/5 bg-ink-850 px-4 py-4 text-sm text-zinc-400">
+          <PackageCheck className="size-5 shrink-0 text-emerald-300" aria-hidden="true" />
+          Livros são vendidos como edição completa: não há capítulos para leitura online.
+        </p>
+      )}
     </div>
   );
 }

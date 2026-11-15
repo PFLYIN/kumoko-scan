@@ -9,7 +9,7 @@ const STATUS = {
   CANCELADO: { label: 'Cancelado', icon: XCircle, classes: 'bg-red-500/15 text-red-300' },
 };
 
-export default function PedidoCard({ pedido, destaque = false }) {
+export default function PedidoCard({ pedido, destaque = false, comLinkDetalhe = true }) {
   const status = STATUS[pedido.status] ?? { label: pedido.status, icon: CheckCircle2, classes: 'bg-white/10 text-zinc-300' };
   const StatusIcon = status.icon;
 
@@ -32,6 +32,11 @@ export default function PedidoCard({ pedido, destaque = false }) {
             {status.label}
           </span>
           <span className="text-lg font-bold text-zinc-50">{formatPreco(pedido.total)}</span>
+          {comLinkDetalhe && (
+            <Link to={`/pedidos/${pedido.id}`} className="btn-secondary px-3 py-1.5 text-xs" aria-label={`Ver detalhes do pedido ${pedido.id}`}>
+              Detalhes
+            </Link>
+          )}
         </div>
       </header>
 

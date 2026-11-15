@@ -13,6 +13,7 @@ export default function ObraCard({ obra }) {
         <ObraCover
           src={obra.capaThumbUrl ?? obra.capaUrl}
           alt={`Capa de ${obra.nome}`}
+          titulo={obra.nome}
           className="size-full transition-transform duration-500 group-hover:scale-105"
         />
         <TipoBadge tipo={obra.tipo} className="absolute top-2 left-2 backdrop-blur-md" />

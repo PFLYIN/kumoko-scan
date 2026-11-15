@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import type { CacheService } from '@kumoko/cache';
 import type { Repository } from 'typeorm';
 import type { CatalogSettings } from '../../../config/catalog-settings';
@@ -31,6 +31,7 @@ function obraFake(over: Partial<Obra> = {}): Obra {
 
 function setup() {
   const repo = {
+    query: jest.fn().mockResolvedValue([{ total: 0 }]),
     findOneBy: jest.fn(),
     findBy: jest.fn(),
     save: jest.fn(async (o: Obra) => ({ ...obraFake(), ...o, id: o.id ?? 10 })),
@@ -96,6 +97,14 @@ describe('ObrasService', () => {
     expect(repo.findOneBy).toHaveBeenCalledTimes(1);
     expect(cache.getOrSet).toHaveBeenCalledWith('catalog:obras:id:1', 60, expect.any(Function));
     expect(primeira.value).toMatchObject({ id: 1, preco: 39.9, capaUrl: '/files/covers/antiga.jpg' });
+  });
+
+  it('update: 409 ao mudar para livro uma obra que tem capitulos', async () => {
+    const { service, repo } = setup();
+    repo.findOneBy.mockResolvedValue(obraFake());
+    repo.query.mockResolvedValue([{ total: '2' }]);
+    await expect(service.update(1, { tipo: TipoObra.Livro })).rejects.toBeInstanceOf(ConflictException);
+    expect(repo.save).not.toHaveBeenCalled();
   });
 
   it('findById: 404 quando nao existe', async () => {
