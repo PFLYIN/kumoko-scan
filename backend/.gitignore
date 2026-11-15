@@ -13,7 +13,8 @@ apps/*/.env.*
 !apps/*/.env.example
 
 # Uploads gerados em dev local
-uploads/
+/uploads/
+/apps/*/uploads/
 
 # Logs e SO
 *.log
