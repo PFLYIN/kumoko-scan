@@ -52,6 +52,25 @@ export function toOptionalNumber(params: TransformFnParams): unknown {
   return toNumber(params);
 }
 
+/**
+ * Lista separada por virgula (multipart) -> string[] bruto; a normalizacao/validacao fica no dominio.
+ * Aceita tambem campo repetido (array). '' vira [] (limpa a lista).
+ */
+export function toGenerosList(params: TransformFnParams): unknown {
+  const value = rawValue(params);
+  if (value === undefined || value === null) {
+    return value;
+  }
+  const itens = Array.isArray(value) ? value : [value];
+  if (!itens.every((item) => typeof item === 'string')) {
+    return value;
+  }
+  return itens
+    .flatMap((item) => item.split(','))
+    .map((item) => item.trim())
+    .filter((item) => item !== '');
+}
+
 /** Query string opcional: '' (ou so espacos) vira undefined, como se o parametro nao fosse enviado. */
 export function emptyToUndefined(params: TransformFnParams): unknown {
   const value = rawValue(params);

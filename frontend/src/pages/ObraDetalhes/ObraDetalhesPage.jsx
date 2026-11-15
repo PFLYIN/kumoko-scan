@@ -1,10 +1,15 @@
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, BookX, PackageCheck } from 'lucide-react';
+import { BookOpen, BookX, PackageCheck } from 'lucide-react';
 import { catalogService } from '../../services/catalog.service.js';
 import { useFetch } from '../../hooks/useFetch.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
-import { formatPreco, tipoLabel, tipoTemCapitulos } from '../../utils/format.js';
+import { formatNumeroCapitulo, formatPreco, TIPOS_OBRA, tipoLabel, tipoTemCapitulos } from '../../utils/format.js';
+import { useProgressoDaObra } from '../../hooks/useLeitura.js';
+import GeneroChips from '../../components/obras/GeneroChips.jsx';
+import Breadcrumb from './Breadcrumb.jsx';
+import Sinopse from './Sinopse.jsx';
+import ObrasRelacionadas from './ObrasRelacionadas.jsx';
 import LoadingState from '../../components/ui/LoadingState.jsx';
 import ErrorState from '../../components/ui/ErrorState.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
@@ -19,6 +24,7 @@ export default function ObraDetalhesPage() {
   const { isAdmin } = useAuth();
   const { data: obra, loading, error, reload } = useFetch(() => catalogService.getObra(id), [id]);
   useDocumentTitle(obra?.nome ?? 'Obra');
+  const progresso = useProgressoDaObra(obra?.id);
 
   if (loading) return <LoadingState message="Carregando obra..." />;
 
@@ -45,9 +51,14 @@ export default function ObraDetalhesPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 2xl:max-w-7xl">
-      <Link to="/catalogo" className="mb-6 inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-brand-300">
-        <ArrowLeft className="size-4" aria-hidden="true" /> Voltar ao catálogo
-      </Link>
+      <Breadcrumb
+        itens={[
+          { label: 'Início', to: '/' },
+          { label: 'Catálogo', to: '/catalogo' },
+          { label: TIPOS_OBRA.find((t) => t.value === obra.tipo)?.plural ?? tipoLabel(obra.tipo), to: `/catalogo?tipo=${obra.tipo}` },
+          { label: obra.nome },
+        ]}
+      />
 
       <article className="grid gap-8 md:grid-cols-[minmax(0,18rem)_1fr] lg:gap-12 2xl:grid-cols-[22rem_1fr]">
         <ObraCover
@@ -67,6 +78,7 @@ export default function ObraDetalhesPage() {
             </div>
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-50">{obra.nome}</h1>
             <p className="mt-1 text-sm text-zinc-400">{obra.autor || 'Autor desconhecido'}</p>
+            <GeneroChips generos={obra.generos} size="sm" className="mt-3" />
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
@@ -79,6 +91,17 @@ export default function ObraDetalhesPage() {
           <p className="text-3xl font-bold text-zinc-50">{formatPreco(obra.preco)}</p>
 
           <AdicionarAoCarrinho obra={obra} />
+
+          {progresso && tipoTemCapitulos(obra.tipo) && (
+            <Link
+              to={`/obras/${obra.id}/capitulos/${progresso.capituloId}`}
+              className="btn-secondary self-start border-brand-400/30 text-brand-300"
+            >
+              <BookOpen className="size-4" aria-hidden="true" />
+              Continuar leitura: cap. {formatNumeroCapitulo(progresso.capituloNumero)}
+              {progresso.totalPaginas > 0 && `, pág. ${Math.min(progresso.pagina, progresso.totalPaginas)}/${progresso.totalPaginas}`}
+            </Link>
+          )}
 
           {isAdmin && (
             <div className="flex flex-wrap gap-2 border-t border-white/5 pt-4">
@@ -93,25 +116,23 @@ export default function ObraDetalhesPage() {
             </div>
           )}
 
-          <section aria-labelledby="sinopse">
-            <h2 id="sinopse" className="mb-2 text-lg font-semibold text-zinc-100">
-              Sinopse
-            </h2>
-            <p className="text-sm leading-relaxed whitespace-pre-line text-zinc-400">
-              {obra.descricao || `Nenhuma sinopse disponível para este ${tipoLabel(obra.tipo).toLowerCase()} no momento.`}
-            </p>
-          </section>
+          <Sinopse
+            texto={obra.descricao}
+            vazio={`Nenhuma sinopse disponível para este ${tipoLabel(obra.tipo).toLowerCase()} no momento.`}
+          />
         </div>
       </article>
 
       {tipoTemCapitulos(obra.tipo) ? (
-        <CapitulosLista obraId={obra.id} />
+        <CapitulosLista obraId={obra.id} ultimoLidoId={progresso?.capituloId} />
       ) : (
         <p className="mt-12 flex items-center gap-3 rounded-xl border border-white/5 bg-ink-850 px-4 py-4 text-sm text-zinc-400">
           <PackageCheck className="size-5 shrink-0 text-emerald-300" aria-hidden="true" />
           Livros são vendidos como edição completa: não há capítulos para leitura online.
         </p>
       )}
+
+      <ObrasRelacionadas obraId={obra.id} />
     </div>
   );
 }

@@ -1,9 +1,21 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsEnum, IsInt, IsNumber, IsOptional, IsString, Length, Max, MaxLength, Min } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Length,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import {
   toNullableNumber,
   toNumber,
+  toGenerosList,
   toOptionalNumber,
   trimString,
   trimToNull,
@@ -18,6 +30,7 @@ import {
   PRECO_MINIMO,
   VOLUME_MAXIMO,
 } from '../domain/obra-rules';
+import { GENERO_MAX, GENEROS_MAX } from '../domain/generos';
 import { TipoObra } from '../domain/tipo-obra';
 
 /**
@@ -48,6 +61,16 @@ export class CreateObraDto {
   @IsString({ message: 'descricao deve ser um texto.' })
   @MaxLength(DESCRICAO_MAX, { message: `descricao deve ter no máximo ${DESCRICAO_MAX} caracteres.` })
   descricao?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: 'Ação, Fantasia, Isekai',
+    description: `Gêneros separados por vírgula (máx. ${GENEROS_MAX}, cada um até ${GENERO_MAX} caracteres). '' limpa a lista.`,
+  })
+  @Transform(toGenerosList)
+  @IsOptional()
+  @IsArray({ message: 'generos deve ser uma lista separada por vírgula.' })
+  generos?: string[];
 
   @ApiPropertyOptional({
     minimum: 1,

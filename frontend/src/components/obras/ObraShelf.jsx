@@ -8,12 +8,12 @@ import ObraGrid from './ObraGrid.jsx';
 import ObraGridSkeleton from './ObraGridSkeleton.jsx';
 
 // Secao da Home: busca uma vitrine de obras com a ordenacao informada.
-export default function ObraShelf({ title, ordenar, limit = 8, verTodosHref }) {
+export default function ObraShelf({ title, ordenar, tipo, id, limit = 8, verTodosHref }) {
   const { data, loading, error, reload } = useFetch(
-    () => catalogService.listObras({ ordenar, limit, page: 1 }),
-    [ordenar, limit],
+    () => catalogService.listObras({ ordenar, tipo, limit, page: 1 }),
+    [ordenar, tipo, limit],
   );
-  const headingId = `shelf-${ordenar}`;
+  const headingId = `shelf-${id ?? ordenar}`;
 
   return (
     <section aria-labelledby={headingId} className="mx-auto max-w-7xl 2xl:max-w-[96rem] px-4 py-12 sm:px-6">

@@ -11,6 +11,8 @@ describe('ObrasController (HTTP)', () => {
     list: jest.fn(),
     findById: jest.fn(),
     findLote: jest.fn(),
+    listarGeneros: jest.fn(),
+    findRelacionadas: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
@@ -51,6 +53,34 @@ describe('ObrasController (HTTP)', () => {
       .expect(200, [{ id: 1 }]);
     expect(service.findLote).toHaveBeenCalledWith('1,2,999');
     expect(service.findById).not.toHaveBeenCalled();
+  });
+
+  it('GET /obras?genero= repassa o filtro', async () => {
+    service.list.mockResolvedValue({ value: { data: [], meta: {} }, hit: false });
+    await request(app.getHttpServer()).get('/obras?genero=Fantasia').expect(200);
+    expect(service.list).toHaveBeenCalledWith(expect.objectContaining({ genero: 'Fantasia' }));
+  });
+
+  it('GET /obras/generos nao cai na rota :id e seta X-Cache', async () => {
+    service.listarGeneros.mockResolvedValue({ value: [{ genero: 'Ação', total: 2 }], hit: false });
+    const res = await request(app.getHttpServer())
+      .get('/obras/generos')
+      .expect(200, [{ genero: 'Ação', total: 2 }]);
+    expect(res.headers['x-cache']).toBe('MISS');
+    expect(service.findById).not.toHaveBeenCalled();
+  });
+
+  it('GET /obras/:id/relacionadas valida limit e usa 6 por padrao', async () => {
+    service.findRelacionadas.mockResolvedValue({ value: [{ id: 2 }], hit: true });
+    const res = await request(app.getHttpServer())
+      .get('/obras/1/relacionadas')
+      .expect(200, [{ id: 2 }]);
+    expect(res.headers['x-cache']).toBe('HIT');
+    expect(service.findRelacionadas).toHaveBeenCalledWith(1, 6);
+    await request(app.getHttpServer()).get('/obras/1/relacionadas?limit=4').expect(200);
+    expect(service.findRelacionadas).toHaveBeenLastCalledWith(1, 4);
+    await request(app.getHttpServer()).get('/obras/1/relacionadas?limit=50').expect(400);
+    await request(app.getHttpServer()).get('/obras/abc/relacionadas').expect(400);
   });
 
   it('GET /obras/lote com ids invalidos -> 400', async () => {

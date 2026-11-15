@@ -19,6 +19,9 @@ export class ObraResponseDto {
   @ApiProperty({ example: 'Volume 1 de Dandadan.', nullable: true, type: String })
   descricao: string | null;
 
+  @ApiProperty({ example: ['Ação', 'Sobrenatural'], type: [String], description: 'Gêneros/tags da obra' })
+  generos: string[];
+
   @ApiProperty({ example: 1, nullable: true, type: Number })
   volume: number | null;
 

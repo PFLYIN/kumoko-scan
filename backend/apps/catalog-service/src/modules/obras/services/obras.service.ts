@@ -27,6 +27,16 @@ import { aplicarAlteracao, AVALIACAO_PADRAO, normalizarObra, type DadosObra } fr
 import { OrdenacaoObras } from '../domain/ordenacao-obras';
 import { parseLoteIds } from '../domain/lote-ids';
 import { tipoAceitaCapitulos } from '../domain/tipo-obra';
+import {
+  canonicalizarGenero,
+  contarGeneros,
+  normalizarGeneros,
+  rankearRelacionadas,
+  type GeneroContagem,
+} from '../domain/generos';
+
+/** Limite de candidatas avaliadas para "obras relacionadas" (acervo pequeno; evita varrer tabelas enormes). */
+export const RELACIONADAS_CANDIDATAS_MAX = 500;
 
 export const TIPO_COM_CAPITULOS =
   'Esta obra tem capítulos cadastrados. Exclua os capítulos antes de mudar o tipo para livro.';
@@ -84,6 +94,7 @@ export class ObrasService {
     const filtros = {
       tipo: query.tipo ?? null,
       busca: query.busca?.trim() || null,
+      genero: query.genero ? canonicalizarGenero(query.genero) || null : null,
       ordenar: query.ordenar ?? OrdenacaoObras.Recentes,
       page: query.page,
       limit: query.limit,
@@ -98,6 +109,10 @@ export class ObrasService {
         qb.andWhere('(o.nome LIKE :busca OR o.autor LIKE :busca)', {
           busca: `%${escapeLike(filtros.busca)}%`,
         });
+      }
+      if (filtros.genero) {
+        // JSON '["Ação","Fantasia"]': LIKE com a collation unicode_ci ignora caixa e acento.
+        qb.andWhere('o.generos LIKE :genero', { genero: `%"${escapeLike(filtros.genero)}"%` });
       }
       switch (filtros.ordenar) {
         case OrdenacaoObras.Nome:
@@ -126,6 +141,33 @@ export class ObrasService {
     // Se a obra nao existe o loader lanca 404 e nada e cacheado.
     return this.cache.getOrSet(CatalogCacheKeys.obra(id), this.settings.cacheTtlSeconds, async () =>
       toObraResponse(await this.getEntity(id)),
+    );
+  }
+
+  /** Generos em uso com a quantidade de obras (alimenta o filtro do catalogo). */
+  async listarGeneros(): Promise<CacheResult<GeneroContagem[]>> {
+    return this.cache.getOrSet(CatalogCacheKeys.generos(), this.settings.cacheTtlSeconds, async () => {
+      const rows = await this.obras.find({ select: { id: true, generos: true } });
+      return contarGeneros(rows.map((row) => (Array.isArray(row.generos) ? row.generos : [])));
+    });
+  }
+
+  /** Obras com generos em comum e/ou do mesmo tipo (ver rankearRelacionadas). 404 se a obra nao existe. */
+  async findRelacionadas(id: number, limit: number): Promise<CacheResult<ObraResponseDto[]>> {
+    return this.cache.getOrSet(
+      CatalogCacheKeys.relacionadas(id, limit),
+      this.settings.cacheTtlSeconds,
+      async () => {
+        const base = await this.getEntity(id);
+        const candidatas = await this.obras.find({
+          order: { totalVendido: 'DESC', id: 'ASC' },
+          take: RELACIONADAS_CANDIDATAS_MAX,
+        });
+        const comGeneros = candidatas.map((obra) => ({ ...obra, generos: obra.generos ?? [] }));
+        return rankearRelacionadas({ ...base, generos: base.generos ?? [] }, comGeneros, limit).map((obra) =>
+          toObraResponse(obra),
+        );
+      },
     );
   }
 
@@ -162,6 +204,7 @@ export class ObrasService {
         avaliacao: dto.avaliacao ?? AVALIACAO_PADRAO,
       }),
     );
+    const generos = dominio(() => normalizarGeneros(dto.generos));
     // Valida magic bytes e grava a capa ANTES do banco; se o banco falhar, remove o arquivo.
     const capaPath = capa ? await this.storage.saveImage(StoragePaths.coversDir, capa.buffer) : null;
     const variantes = await this.gerarVariantes(capaPath);
@@ -170,6 +213,7 @@ export class ObrasService {
       obra = await this.obras.save(
         this.obras.create({
           ...dados,
+          generos,
           capaPath,
           capaThumbPath: variantes.thumbPath,
           capaMediaPath: variantes.mediaPath,
@@ -208,6 +252,7 @@ export class ObrasService {
         avaliacao: dto.avaliacao,
       }),
     );
+    const generos = dto.generos === undefined ? undefined : dominio(() => normalizarGeneros(dto.generos));
     if (!tipoAceitaCapitulos(dados.tipo) && tipoAceitaCapitulos(obra.tipo)) {
       await this.assertSemCapitulos(id);
     }
@@ -215,6 +260,9 @@ export class ObrasService {
     const novaCapa = capa ? await this.storage.saveImage(StoragePaths.coversDir, capa.buffer) : null;
     const variantes = await this.gerarVariantes(novaCapa);
     Object.assign(obra, dados);
+    if (generos !== undefined) {
+      obra.generos = generos;
+    }
     if (novaCapa) {
       obra.capaPath = novaCapa;
       obra.capaThumbPath = variantes.thumbPath;

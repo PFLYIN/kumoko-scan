@@ -13,6 +13,7 @@ import { StoragePaths } from '../../../shared/storage/storage-paths';
 import { normalizarObra } from '../domain/obra-rules';
 import { Obra } from '../entities/obra.entity';
 import { mangaSeed, OBRAS_SEM_CAPA } from './catalog-seed.data';
+import { generosSeed } from './generos-seed.data';
 
 const EXTENSOES_CAPA = ['.jpg', '.jpeg', '.png', '.webp'];
 
@@ -74,6 +75,7 @@ export class CatalogSeedService implements OnApplicationBootstrap {
         novas.push(
           this.obras.create({
             ...normalizarObra(mangaSeed(arquivo, indice)),
+            generos: generosSeed(mangaSeed(arquivo, indice).nome),
             capaPath,
             capaThumbPath: thumbPath,
             capaMediaPath: mediaPath,
@@ -81,7 +83,9 @@ export class CatalogSeedService implements OnApplicationBootstrap {
         );
       }
       for (const dados of OBRAS_SEM_CAPA) {
-        novas.push(this.obras.create({ ...normalizarObra(dados), capaPath: null }));
+        novas.push(
+          this.obras.create({ ...normalizarObra(dados), generos: generosSeed(dados.nome), capaPath: null }),
+        );
       }
       await this.obras.save(novas);
     } catch (error) {

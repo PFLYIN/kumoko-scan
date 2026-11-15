@@ -22,6 +22,10 @@ export class Obra {
   @Column({ type: 'text', nullable: true })
   descricao: string | null;
 
+  /** Generos/tags (JSON no banco). Ver domain/generos.ts. */
+  @Column({ type: 'simple-json' })
+  generos: string[];
+
   @Column({ type: 'int', nullable: true })
   volume: number | null;
 

@@ -14,6 +14,7 @@ export function toObraResponse(obra: Obra): ObraResponseDto {
     nome: obra.nome,
     autor: obra.autor,
     descricao: obra.descricao,
+    generos: Array.isArray(obra.generos) ? obra.generos : [],
     volume: obra.volume,
     preco: Number(obra.preco),
     avaliacao: Number(obra.avaliacao),

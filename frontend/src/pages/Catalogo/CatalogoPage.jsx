@@ -12,6 +12,7 @@ import TipoTabs from '../../components/obras/TipoTabs.jsx';
 import ObraGrid from '../../components/obras/ObraGrid.jsx';
 import ObraGridSkeleton from '../../components/obras/ObraGridSkeleton.jsx';
 import ObraFiltros from '../../components/obras/ObraFiltros.jsx';
+import GeneroFiltro from '../../components/obras/GeneroFiltro.jsx';
 
 // 24 fecha linhas completas em 3, 4, 6 e 8 colunas (grade de 1366 a 1920 px).
 const LIMIT = 24;
@@ -24,6 +25,7 @@ function readFiltros(searchParams) {
   return {
     tipo: TIPOS_OBRA.some((t) => t.value === tipo) ? tipo : '',
     busca: (searchParams.get('busca') ?? '').trim(),
+    genero: (searchParams.get('genero') ?? '').trim().slice(0, 30),
     ordenar: ORDENACOES.some((o) => o.value === ordenar) ? ordenar : 'recentes',
     page: Number.isFinite(page) && page > 0 ? page : 1,
   };
@@ -33,11 +35,11 @@ export default function CatalogoPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const filtros = readFiltros(searchParams);
   const tituloTipo = TIPOS_OBRA.find((t) => t.value === filtros.tipo)?.plural;
-  useDocumentTitle(tituloTipo ?? 'Catálogo');
+  useDocumentTitle([tituloTipo ?? 'Catálogo', filtros.genero].filter(Boolean).join(' - '));
 
   const { data, loading, error, reload } = useFetch(
     () => catalogService.listObras({ ...filtros, limit: LIMIT }),
-    [filtros.tipo, filtros.busca, filtros.ordenar, filtros.page],
+    [filtros.tipo, filtros.genero, filtros.busca, filtros.ordenar, filtros.page],
   );
 
   // Atualiza a URL; qualquer filtro novo volta para a pagina 1.
@@ -60,7 +62,9 @@ export default function CatalogoPage() {
         subtitle={
           filtros.busca
             ? `Resultados para "${filtros.busca}"${meta ? ` - ${meta.total} encontrada(s)` : ''}`
-            : 'Explore mangás, livros e light novels do acervo.'
+            : filtros.genero
+              ? `Gênero: ${filtros.genero}${meta ? ` - ${meta.total} obra(s)` : ''}`
+              : 'Explore mangás, livros e light novels do acervo.'
         }
       />
 
@@ -75,6 +79,10 @@ export default function CatalogoPage() {
         />
       </div>
 
+      <div className="-mt-4 mb-8">
+        <GeneroFiltro value={filtros.genero} onChange={(genero) => updateParams({ genero })} />
+      </div>
+
       {loading && <ObraGridSkeleton count={LIMIT} />}
       {!loading && error && <ErrorState error={error} onRetry={reload} />}
       {!loading && !error && obras.length === 0 && (
@@ -83,7 +91,7 @@ export default function CatalogoPage() {
           title="Nenhuma obra encontrada"
           description="Tente outro termo de busca ou remova os filtros."
           action={
-            (filtros.busca || filtros.tipo) && (
+            (filtros.busca || filtros.tipo || filtros.genero) && (
               <button type="button" className="btn-secondary" onClick={() => setSearchParams(new URLSearchParams())}>
                 Limpar filtros
               </button>

@@ -16,6 +16,7 @@ function obraFake(over: Partial<Obra> = {}): Obra {
     nome: 'Dandadan',
     autor: null,
     descricao: null,
+    generos: ['Ação', 'Fantasia'],
     volume: 1,
     preco: 39.9,
     avaliacao: 5,
@@ -34,6 +35,7 @@ function setup() {
     query: jest.fn().mockResolvedValue([{ total: 0 }]),
     findOneBy: jest.fn(),
     findBy: jest.fn(),
+    find: jest.fn().mockResolvedValue([]),
     save: jest.fn(async (o: Obra) => ({ ...obraFake(), ...o, id: o.id ?? 10 })),
     create: jest.fn((o: Partial<Obra>) => ({ ...o }) as Obra),
     delete: jest.fn().mockResolvedValue({ affected: 1 }),
@@ -202,6 +204,76 @@ describe('ObrasService', () => {
     repo.findBy.mockResolvedValue([obraFake({ id: 1 }), obraFake({ id: 2 })]);
     const res = await service.findLote('2,1,999');
     expect(res.map((o) => o.id)).toEqual([2, 1]);
+  });
+
+  it('create/update: normaliza generos (dedup, caixa) e PATCH sem generos mantem a lista', async () => {
+    const { service, repo } = setup();
+    await service.create({ tipo: TipoObra.Manga, nome: 'X', preco: 10, generos: ['acao', 'Ação', 'isekai'] });
+    expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({ generos: ['Acao', 'Isekai'] }));
+    await expect(
+      service.create({ tipo: TipoObra.Manga, nome: 'X', preco: 10, generos: ['<b>'] }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    repo.findOneBy.mockResolvedValue(obraFake());
+    const mantida = await service.update(1, { nome: 'Novo' });
+    expect(mantida.generos).toEqual(['Ação', 'Fantasia']);
+    repo.findOneBy.mockResolvedValue(obraFake());
+    const limpa = await service.update(1, { generos: [] });
+    expect(limpa.generos).toEqual([]);
+  });
+
+  it('list: filtro por genero usa LIKE no JSON e entra na chave de cache', async () => {
+    const { service, repo } = setup();
+    const qb = {
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getManyAndCount: jest.fn().mockResolvedValue([[obraFake()], 1]),
+    };
+    repo.createQueryBuilder.mockReturnValue(qb);
+    const a = await service.list({ page: 1, limit: 10, genero: ' fantasia ' });
+    expect(qb.andWhere).toHaveBeenCalledWith('o.generos LIKE :genero', { genero: '%"Fantasia"%' });
+    expect(a.hit).toBe(false);
+    expect((await service.list({ page: 1, limit: 10, genero: 'Fantasia' })).hit).toBe(true);
+    expect((await service.list({ page: 1, limit: 10 })).hit).toBe(false);
+  });
+
+  it('listarGeneros: conta obras por genero com cache catalog:obras:generos', async () => {
+    const { service, repo, cache } = setup();
+    repo.find.mockResolvedValue([{ generos: ['Ação', 'Drama'] }, { generos: ['acao'] }, { generos: null }]);
+    const r1 = await service.listarGeneros();
+    expect(r1).toEqual({
+      hit: false,
+      value: [
+        { genero: 'Ação', total: 2 },
+        { genero: 'Drama', total: 1 },
+      ],
+    });
+    expect((await service.listarGeneros()).hit).toBe(true);
+    expect(cache.getOrSet).toHaveBeenCalledWith('catalog:obras:generos', 60, expect.any(Function));
+  });
+
+  it('findRelacionadas: rankeia por genero/tipo, 404 se a obra nao existe e e invalidada com o prefixo', async () => {
+    const { service, repo, cache } = setup();
+    repo.findOneBy.mockResolvedValue(null);
+    await expect(service.findRelacionadas(99, 6)).rejects.toBeInstanceOf(NotFoundException);
+
+    repo.findOneBy.mockResolvedValue(obraFake({ id: 1 }));
+    repo.find.mockResolvedValue([
+      obraFake({ id: 1 }),
+      obraFake({ id: 2, tipo: TipoObra.Livro, generos: ['Drama'] }),
+      obraFake({ id: 3, tipo: TipoObra.Novel, generos: ['Fantasia'] }),
+      obraFake({ id: 4, generos: [] }),
+    ]);
+    const res = await service.findRelacionadas(1, 6);
+    expect(res.hit).toBe(false);
+    expect(res.value.map((o) => o.id)).toEqual([3, 4]);
+    expect((await service.findRelacionadas(1, 6)).hit).toBe(true);
+    await service.invalidarObras();
+    expect(cache.invalidatePrefix).toHaveBeenCalledWith('catalog:obras:');
+    expect((await service.findRelacionadas(1, 6)).hit).toBe(false);
   });
 
   it('escapeLike escapa curingas', () => {

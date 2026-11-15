@@ -43,6 +43,11 @@ import { CAPA_FILE_SCHEMA, CreateObraDto } from '../dto/create-obra.dto';
 import { ListObrasQueryDto } from '../dto/list-obras-query.dto';
 import { ObraResponseDto, PaginatedObrasResponseDto } from '../dto/obra-response.dto';
 import { UpdateObraDto } from '../dto/update-obra.dto';
+import {
+  GeneroContagemDto,
+  RELACIONADAS_LIMIT_PADRAO,
+  RelacionadasQueryDto,
+} from '../dto/relacionadas-query.dto';
 import { LOTE_MAX_IDS } from '../domain/lote-ids';
 import { ObrasService } from '../services/obras.service';
 
@@ -64,6 +69,18 @@ export class ObrasController {
   @ApiResponse({ status: 400, description: 'Filtros invalidos', type: ErrorResponseDto })
   async list(@Query() query: ListObrasQueryDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.obras.list(query);
+    setCacheHeader(res, result.hit);
+    return result.value;
+  }
+
+  // Declarada ANTES de :id para "generos" nao ser interpretado como id.
+  @Public()
+  @Throttle(PUBLIC_READ_THROTTLE)
+  @Get('generos')
+  @ApiOperation({ summary: 'Gêneros em uso com a quantidade de obras, do mais comum ao menos (cache)' })
+  @ApiOkResponse({ type: [GeneroContagemDto], headers: CACHE_HEADER_DOC })
+  async generos(@Res({ passthrough: true }) res: Response) {
+    const result = await this.obras.listarGeneros();
     setCacheHeader(res, result.hit);
     return result.value;
   }
@@ -95,6 +112,25 @@ export class ObrasController {
   @ApiResponse({ status: 404, description: 'Obra nao encontrada', type: ErrorResponseDto })
   async findOne(@Param('id', ParseIdPipe) id: number, @Res({ passthrough: true }) res: Response) {
     const result = await this.obras.findById(id);
+    setCacheHeader(res, result.hit);
+    return result.value;
+  }
+
+  @Public()
+  @Throttle(PUBLIC_READ_THROTTLE)
+  @Get(':id/relacionadas')
+  @ApiOperation({
+    summary: 'Obras relacionadas: gêneros em comum e mesmo tipo, desempate por vendas (cache)',
+  })
+  @ApiOkResponse({ type: [ObraResponseDto], headers: CACHE_HEADER_DOC })
+  @ApiResponse({ status: 400, description: 'Id ou limit invalido', type: ErrorResponseDto })
+  @ApiResponse({ status: 404, description: 'Obra nao encontrada', type: ErrorResponseDto })
+  async relacionadas(
+    @Param('id', ParseIdPipe) id: number,
+    @Query() query: RelacionadasQueryDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.obras.findRelacionadas(id, query.limit ?? RELACIONADAS_LIMIT_PADRAO);
     setCacheHeader(res, result.hit);
     return result.value;
   }
