@@ -1,0 +1,23 @@
+# Dependencias e builds
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Ambiente local (nunca versionar segredos)
+.env
+.env.*
+!.env.example
+apps/*/.env
+apps/*/.env.*
+!apps/*/.env.example
+
+# Uploads gerados em dev local
+/uploads/
+/apps/*/uploads/
+
+# Logs e SO
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db

@@ -1,0 +1,238 @@
+# Pipeline CI/CD do Kumoko Scan.
+#   backend / frontend  -> qualidade (lint, testes, build) em paralelo
+#   compose-smoke       -> sobe a stack completa via Docker Compose e roda o smoke test pela borda
+#   publish-images      -> publica as imagens no GHCR (somente push em main/dev)
+#   deploy              -> esqueleto de deploy em producao (somente main, opt-in via variavel)
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+# Um pipeline por branch/PR; em PR, um push novo cancela o anterior.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Menor privilegio por padrao; jobs que precisam de mais declaram explicitamente.
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  # Monorepo NestJS: lint, testes unitarios com cobertura e build dos 3 microsservicos.
+  backend:
+    name: Backend (lint, testes, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instala dependencias
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Testes unitarios com cobertura
+        run: npm test -- --coverage --ci
+
+      - name: Build dos microsservicos
+        run: |
+          for app in auth-service catalog-service order-service; do
+            echo "Build $app"
+            npx nest build "$app"
+          done
+
+      - name: Publica relatorio de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # SPA React (Vite): lint e build de producao.
+  frontend:
+    name: Frontend (lint, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instala dependencias
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+  # Teste de integracao da stack inteira: gateway, frontend, 3 servicos, MariaDB e Redis.
+  compose-smoke:
+    name: Smoke test (Docker Compose)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      # Nunca usa os segredos de exemplo: gera valores aleatorios a cada execucao.
+      - name: Gera .env com segredos aleatorios
+        run: |
+          cp .env.example .env
+          set_secret() {
+            echo "::add-mask::$2"
+            sed -i "s|^$1=.*|$1=$2|" .env
+          }
+          set_secret MARIADB_ROOT_PASSWORD "$(openssl rand -hex 24)"
+          set_secret AUTH_DB_PASSWORD "$(openssl rand -hex 24)"
+          set_secret CATALOG_DB_PASSWORD "$(openssl rand -hex 24)"
+          set_secret ORDER_DB_PASSWORD "$(openssl rand -hex 24)"
+          set_secret REDIS_PASSWORD "$(openssl rand -hex 24)"
+          set_secret JWT_SECRET "$(openssl rand -hex 32)"
+          set_secret ADMIN_PASSWORD "Ci-$(openssl rand -hex 12)a1"
+          docker compose config -q
+
+      - name: Sobe a stack e aguarda os healthchecks
+        run: docker compose up -d --build --wait --wait-timeout 420
+
+      - name: Smoke test pelo gateway
+        run: bash scripts/smoke-test.sh
+
+      - name: Estado e logs dos containers (em falha)
+        if: failure()
+        run: |
+          docker compose ps -a
+          docker compose logs --no-color --timestamps --tail=300
+
+      - name: Derruba a stack e remove volumes
+        if: always()
+        run: docker compose down -v --remove-orphans
+
+  # Publica uma imagem por container no GHCR com tag do commit (sha) e tag movel do branch.
+  publish-images:
+    name: Publica imagem ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [compose-smoke]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: gateway
+            context: infra/nginx
+            build_args: ""
+          - service: frontend
+            context: frontend
+            build_args: ""
+          - service: auth-service
+            context: backend
+            build_args: APP=auth-service
+          - service: catalog-service
+            context: backend
+            build_args: APP=catalog-service
+          - service: order-service
+            context: backend
+            build_args: APP=order-service
+    steps:
+      - uses: actions/checkout@v4
+
+      # GHCR exige nome em minusculas (owner/repo).
+      - name: Define nome e tags da imagem
+        id: image
+        run: |
+          registry="ghcr.io/${GITHUB_REPOSITORY,,}"
+          image="$registry/${{ matrix.service }}"
+          if [ "$GITHUB_REF_NAME" = "main" ]; then moving_tag=latest; else moving_tag="$GITHUB_REF_NAME"; fi
+          {
+            echo "name=$image"
+            echo "tags=$image:$GITHUB_SHA,$image:$moving_tag"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/Dockerfile
+          build-args: ${{ matrix.build_args }}
+          push: true
+          tags: ${{ steps.image.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+  # Esqueleto de deploy (rolling com healthcheck). Habilite com a variavel de repositorio
+  # DEPLOY_ENABLED=true e os segredos DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY,
+  # DEPLOY_KNOWN_HOSTS e DEPLOY_PATH (pasta no servidor com docker-compose.yml, .env e infra/).
+  # Rollback: as imagens sao imutaveis por sha. Basta re-executar o job "deploy" de um run
+  # anterior (Re-run jobs) ou, no servidor:
+  #   IMAGE_REGISTRY=ghcr.io/<owner>/<repo> IMAGE_TAG=<sha-anterior> docker compose up -d --no-build --wait
+  deploy:
+    name: Deploy (producao)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [publish-images]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+    environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - name: Configura acesso SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      # Puxa as imagens do commit e recria apenas os containers alterados,
+      # aguardando os healthchecks (--wait). Falha de saude => job falha => rollback por tag.
+      - name: Atualiza a stack no servidor
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          registry="ghcr.io/${GITHUB_REPOSITORY,,}"
+          ssh -i ~/.ssh/deploy_key "$DEPLOY_USER@$DEPLOY_HOST" \
+            "cd '$DEPLOY_PATH' && export IMAGE_REGISTRY='$registry' IMAGE_TAG='$GITHUB_SHA' && docker compose pull && docker compose up -d --no-build --wait --wait-timeout 300"

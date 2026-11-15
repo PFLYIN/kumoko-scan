@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.build.json",
+  "compilerOptions": {
+    "declaration": false,
+    "incremental": false,
+    "outDir": "../../dist/apps/catalog-service"
+  },
+  "include": ["src/**/*", "../../libs/*/src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.spec.ts", "../../libs/**/*.spec.ts", "../../libs/**/testing/**"]
+}
