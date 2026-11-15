@@ -1,38 +1,79 @@
-# Documentação do projeto
+# Documentação do Kumoko Scan
 
-## Escopo e fontes de verdade atuais
+Documentação arquitetural, operacional e de gestão da versão **1.0.0** (microsserviços).
+Visão geral do produto e instruções de execução estão no [README da raiz](../README.md).
 
-- **Interface ativa:** `Kumoko_Scan-Front/Kumoko_Scan` (React, Vite e React Router).
-- **API usada pelo Compose existente:** `Kumoko_Scan-Back` (Express/TypeScript).
-- **Banco usado pelo Compose existente:** MariaDB.
-- **Mobile:** `archive/mobile`, somente preservado como histórico; não executar nem
-  atualizar.
+## Estrutura
 
-Há também uma pasta `kumoko-backend` com repositório Git próprio. Ela não é
-referenciada pelo `docker-compose.yml` da raiz e não foi incorporada a este fluxo.
-Antes de mudar a API ativa, confirme se essa pasta é uma alternativa experimental ou
-se deve substituir `Kumoko_Scan-Back`.
+```
+docs/
+├── arquitetura/
+│   ├── c4.md                         C4 Contexto, Containers, Componentes e checkout
+│   ├── ddd.md                        Subdomínios, Bounded Contexts, Context Map, modelo tático
+│   ├── quality-scenarios.md          Cenários de atributos de qualidade
+│   ├── boas-praticas.md              Módulos, DTOs, services, controllers, logs, erros
+│   └── adr/                          Registro de decisões (ADR-000 a ADR-006)
+├── api/
+│   └── openapi.yaml                  Contrato OpenAPI 3.1 de todos os endpoints
+├── operacao/
+│   ├── slo-sli.md                    SLIs, SLOs e error budget
+│   ├── resiliencia.md                Retry, timeout, circuit breaker, fallback, idempotência
+│   ├── observabilidade.md            Logs, request-id, métricas, consultas
+│   ├── cache-e-mensageria.md         Demonstração de cache-aside e Pub/Sub
+│   ├── deploy.md                     Pipeline CI/CD, estratégia de deploy e rollback
+│   └── runbook.md                    Runbook de incidentes
+└── gestao/
+    ├── cynefin.md                    Classificação Cynefin e abordagem
+    ├── backlog.md                    Product Backlog, User Stories, sprints, versões
+    ├── jira.md                       Uso do Jira (workflow, tipos, convenções)
+    └── jira-import.csv               Issues importáveis (épicos, stories, tasks, bugs)
+```
 
-O `docker-compose.yml` atual não inclui Nginx, frontend ou Redis; já
-`nginx/default.conf` espera containers chamados `kumoko_frontend` e
-`kumoko_backend`. A integração desses serviços é uma pendência, não uma capacidade
-já disponível.
+## Mapa da rubrica
 
-## Documentos
+| Item da rubrica | Onde está |
+|---|---|
+| **Documentação Arquitetural** — diagramas C4 (Contexto e Containers) | [arquitetura/c4.md](./arquitetura/c4.md) |
+| Registro de ADRs com decisões principais (monólito vs modulith vs microsserviços) | [ADR-001](./arquitetura/adr/ADR-001-microsservicos.md) e [pasta adr/](./arquitetura/adr/) |
+| Quality Scenarios | [arquitetura/quality-scenarios.md](./arquitetura/quality-scenarios.md) |
+| **Estilos Arquiteturais e DDD** — Context Map, domínios e subdomínios | [arquitetura/ddd.md §2 e §4](./arquitetura/ddd.md) |
+| Definição de Bounded Contexts | [arquitetura/ddd.md §3](./arquitetura/ddd.md) |
+| Entities, Value Objects e Aggregates (pelo menos 1 contexto) | [arquitetura/ddd.md §5–§7](./arquitetura/ddd.md) (Vendas, Catálogo e Identidade) |
+| **Integração, APIs e Dados** — OpenAPI/Swagger com os principais endpoints | [api/openapi.yaml](./api/openapi.yaml) + Swagger vivo em `/api/auth/docs`, `/api/catalog/docs`, `/api/orders/docs` |
+| ADR justificando a escolha do banco | [ADR-002](./arquitetura/adr/ADR-002-banco-mariadb-por-servico.md) |
+| **Qualidade, Resiliência e Observabilidade** — SLOs/SLIs | [operacao/slo-sli.md](./operacao/slo-sli.md) |
+| Estratégias de resiliência (retry, timeout, circuit breaker) | [operacao/resiliencia.md](./operacao/resiliencia.md) |
+| Plano de observabilidade (métricas e logs) | [operacao/observabilidade.md](./operacao/observabilidade.md) |
+| **Entrega Contínua** — pipeline CI/CD (build, test, deploy) | `.github/workflows/ci.yml` + [operacao/deploy.md §1](./operacao/deploy.md) |
+| Estratégia de deploy (rolling + rollback; blue/green como evolução) | [operacao/deploy.md §2–§3](./operacao/deploy.md) |
+| Runbook de incidentes | [operacao/runbook.md](./operacao/runbook.md) |
+| **Cache distribuído com Redis** (cache-aside, TTL, invalidação) | [ADR-003](./arquitetura/adr/ADR-003-redis-cache-e-pubsub.md) + [operacao/cache-e-mensageria.md §1](./operacao/cache-e-mensageria.md) + `scripts/demo-cache.sh` |
+| **Mensageria** (Redis Pub/Sub, logs comprovando circulação) | [operacao/cache-e-mensageria.md §2](./operacao/cache-e-mensageria.md) + `scripts/demo-events.sh` |
+| **Docker Compose + Nginx proxy reverso** | `docker-compose.yml`, `infra/nginx/` + [ADR-004](./arquitetura/adr/ADR-004-nginx-gateway.md) |
+| **Boas práticas** (módulos, DTOs, services, controllers; logs; erros) | [arquitetura/boas-praticas.md](./arquitetura/boas-praticas.md) + [ADR-005](./arquitetura/adr/ADR-005-nestjs-monorepo.md) |
+| **Gestão via Jira** (stories/tasks/bugs, atribuições, status) | [gestao/jira.md](./gestao/jira.md) + [gestao/jira-import.csv](./gestao/jira-import.csv) |
+| **Cynefin** (classificação e abordagem) | [gestao/cynefin.md](./gestao/cynefin.md) |
+| **Ciclo de vida ágil** — Product Backlog priorizado com User Stories e critérios de aceite | [gestao/backlog.md](./gestao/backlog.md) |
+| Padronização de versões para lançamentos parciais | [gestao/backlog.md §6](./gestao/backlog.md#6-versionamento-e-lançamentos-parciais) + [CHANGELOG.md](../CHANGELOG.md) |
 
-- [Arquitetura, C4 e mapa de contextos](./architecture/architecture.md)
-- [ADR-001: monólito modular](./architecture/adr/ADR-001-monolito-modular.md)
-- [ADR-002: MariaDB](./architecture/adr/ADR-002-mariadb.md)
-- [Qualidade, SLOs, resiliência e observabilidade](./architecture/quality-and-operations.md)
-- [Contrato OpenAPI inicial](./api/openapi.yaml)
-- [Cynefin e backlog inicial pronto para Jira](./project/management-and-backlog.md)
+## ADRs
 
-## Como entregar
+| ADR | Decisão | Status |
+|---|---|---|
+| [ADR-000](./arquitetura/adr/ADR-000-template.md) | Modelo de ADR | — |
+| [ADR-001](./arquitetura/adr/ADR-001-microsservicos.md) | Monólito Express → 3 microsserviços NestJS | Aceito |
+| [ADR-002](./arquitetura/adr/ADR-002-banco-mariadb-por-servico.md) | MariaDB 11.4, um database por serviço | Aceito |
+| [ADR-003](./arquitetura/adr/ADR-003-redis-cache-e-pubsub.md) | Redis para cache-aside e Pub/Sub | Aceito |
+| [ADR-004](./arquitetura/adr/ADR-004-nginx-gateway.md) | Nginx como gateway único | Aceito |
+| [ADR-005](./arquitetura/adr/ADR-005-nestjs-monorepo.md) | NestJS em monorepo com libs compartilhadas | Aceito |
+| [ADR-006](./arquitetura/adr/ADR-006-autenticacao-jwt-cookie.md) | JWT em cookie httpOnly + Bearer | Aceito |
 
-O fluxo sugerido é uma história pequena por vez, cobrindo interface, API e validação.
-O CI em `.github/workflows/ci.yml` executa build do web e teste de fumaça da API.
-O deploy continua manual até que o ambiente de produção, domínio, segredos e método
-de rollback sejam confirmados; o pipeline não simula nem anuncia uma publicação.
+## Convenções desta documentação
 
-Os SLOs, métricas e domínios nos documentos são propostas iniciais para discussão e
-medição. Não devem ser apresentados como capacidades já implementadas sem evidência.
+- Diagramas em Mermaid (renderizados pelo GitHub e pelo VS Code).
+- Nomes de serviços, portas, rotas, tabelas, eventos e variáveis de ambiente são os
+  mesmos do código e do `docker-compose.yml`. Se divergirem, o código e o
+  [OpenAPI](./api/openapi.yaml) prevalecem e a documentação deve ser corrigida.
+- **Metas x medições:** SLOs e cenários de qualidade trazem metas. Valores medidos só
+  entram com data e método (ver [slo-sli.md §6](./operacao/slo-sli.md)).
+- Validar o OpenAPI: `npx --yes @redocly/cli@1.34.3 lint docs/api/openapi.yaml`.

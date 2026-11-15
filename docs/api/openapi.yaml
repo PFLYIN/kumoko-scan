@@ -1,250 +1,1364 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Kumoko Scan API
   version: 1.0.0
-  description: >-
-    Esqueleto contratual derivado dos registros de rotas em Kumoko_Scan-Back.
-    Campos de payload e respostas ainda precisam ser verificados com controllers
-    e testes de contrato antes de ser considerado contrato completo.
+  summary: Contrato consolidado dos microsserviços auth, catalog e order.
+  description: |
+    API pública do Kumoko Scan exposta pelo gateway Nginx. Todos os caminhos já
+    começam com `/api` e o gateway encaminha sem reescrever o path:
+
+    | Prefixo | Serviço interno |
+    |---|---|
+    | `/api/auth/`, `/api/users/` | `auth-service:3001` |
+    | `/api/obras`, `/api/capitulos`, `/api/paginas`, `/api/catalog/` | `catalog-service:3002` |
+    | `/api/pedidos`, `/api/orders/` | `order-service:3003` |
+
+    Convenções:
+    - JSON em camelCase; datas em ISO-8601 (UTC).
+    - Erros sempre no formato `Erro` (`message` vira lista em erros de validação).
+    - Autenticação por cookie httpOnly `kumoko_token` (web) **ou** cabeçalho
+      `Authorization: Bearer <jwt>` (Swagger, scripts, chamadas entre serviços).
+    - Toda resposta devolve `X-Request-Id` (gerado pelo gateway ou repassado).
+    - Rotas `GET` cacheadas no catálogo devolvem `X-Cache: HIT|MISS`.
+
+    Cada serviço também publica seu Swagger gerado a partir do código:
+    `/api/auth/docs`, `/api/catalog/docs` e `/api/orders/docs`.
+  license:
+    name: Uso acadêmico
+    identifier: CC-BY-NC-4.0
 servers:
-  - url: http://localhost:3000
-    description: API local direta
-  - url: https://kumokoscan.local/api
-    description: URL esperada via Nginx local; conferir proxy antes de usar
+  - url: https://localhost:8443
+    description: Gateway local (docker compose, certificado autoassinado)
 tags:
-  - name: Autenticação
-  - name: Mangás
-  - name: Livros
-  - name: Novels
-  - name: Capítulos
-  - name: Compras
-  - name: Páginas
+  - name: Auth
+    description: Cadastro, login e logout (auth-service).
+  - name: Usuarios
+    description: Perfil do usuário autenticado (auth-service).
+  - name: Obras
+    description: Catálogo de mangás, livros e novels (catalog-service).
+  - name: Capitulos
+    description: Capítulos de uma obra (catalog-service).
+  - name: Paginas
+    description: Páginas de um capítulo para o leitor (catalog-service).
+  - name: Pedidos
+    description: Checkout e histórico de compras (order-service).
+  - name: Operacao
+    description: Endpoints internos da rede `kumoko_net`; NÃO são expostos pelo gateway.
+
+security:
+  - bearerAuth: []
+  - cookieAuth: []
+
 paths:
-  /register:
+  /api/auth/register:
     post:
-      tags: [Autenticação]
-      summary: Criar conta
+      tags: [Auth]
+      operationId: registrarUsuario
+      summary: Cadastra um cliente
+      description: |
+        O cadastro público sempre cria papel `customer`. O administrador é
+        provisionado no boot do auth-service a partir das variáveis `ADMIN_*`.
+        Limitado a 5 requisições por minuto (serviço) e 10 por minuto por IP (gateway).
+      security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [nome, cpf, email, senha]
-              properties:
-                nome: { type: string }
-                cpf: { type: string }
-                email: { type: string, format: email }
-                senha: { type: string, format: password }
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              nome: Maria Leitora
+              email: maria@exemplo.com
+              cpf: '52998224725'
+              senha: Segura123
       responses:
-        "201": { description: Conta criada }
-        "400": { description: Dados inválidos ou conflito }
-  /login:
+        '201':
+          description: Usuário criado.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioResponse'
+              example:
+                id: 7
+                nome: Maria Leitora
+                email: maria@exemplo.com
+                role: customer
+                totalGasto: 0
+                criadoEm: '2026-11-14T13:00:00.000Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/auth/login:
     post:
-      tags: [Autenticação]
-      summary: Autenticar usuário
+      tags: [Auth]
+      operationId: login
+      summary: Autentica e emite o JWT
+      description: |
+        Retorna o token no corpo (para clientes que usam Bearer) e também grava o
+        cookie httpOnly `kumoko_token` (SameSite=Strict, Secure). Falhas retornam
+        sempre a mesma mensagem genérica para não revelar se o e-mail existe.
+      security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [email, senha]
-              properties:
-                email: { type: string, format: email }
-                senha: { type: string, format: password }
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: admin@kumoko.local
+              senha: Admin@Kumoko2026
       responses:
-        "200": { description: Autenticação concluída }
-        "401": { description: Credenciais inválidas }
-  /mangas:
-    get:
-      tags: [Mangás]
-      summary: Listar mangás
-      responses:
-        "200": { description: Lista de mangás }
+        '200':
+          description: Login realizado.
+          headers:
+            Set-Cookie:
+              description: Cookie de sessão `kumoko_token` (httpOnly, Secure, SameSite=Strict, Path=/).
+              schema:
+                type: string
+              example: kumoko_token=eyJhbGciOi...; Max-Age=3600; Path=/; HttpOnly; Secure; SameSite=Strict
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              example:
+                accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoiYWRtaW5Aa3Vtb2tvLmxvY2FsIiwibm9tZSI6IkFkbWluaXN0cmFkb3IgS3Vtb2tvIiwicm9sZSI6ImFkbWluIn0.assinatura
+                tokenType: Bearer
+                expiresIn: 3600
+                usuario:
+                  id: 1
+                  nome: Administrador Kumoko
+                  email: admin@kumoko.local
+                  role: admin
+                  totalGasto: 0
+                  criadoEm: '2026-11-14T12:00:00.000Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Credenciais inválidas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+              example:
+                statusCode: 401
+                error: Unauthorized
+                message: Credenciais inválidas.
+                path: /api/auth/login
+                timestamp: '2026-11-14T13:00:00.000Z'
+                requestId: 3f1c2a9e-0d4b-4b8e-9a51-7b6f0f2d1c11
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/auth/logout:
     post:
-      tags: [Mangás]
-      summary: Criar mangá
-      security: [{ bearerAuth: [] }]
+      tags: [Auth]
+      operationId: logout
+      summary: Encerra a sessão no navegador
+      description: Limpa o cookie `kumoko_token`. O JWT é stateless e expira sozinho (ver ADR-006).
+      security: []
       responses:
-        "201": { description: Mangá criado }
-        "401": { description: Não autenticado }
-        "403": { description: Acesso administrativo necessário }
-  /mangas/{id}:
-    parameters:
-      - $ref: "#/components/parameters/Id"
+        '204':
+          description: Cookie removido.
+          headers:
+            Set-Cookie:
+              description: Cookie `kumoko_token` expirado.
+              schema:
+                type: string
+              example: kumoko_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Strict
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/users/me:
     get:
-      tags: [Mangás]
-      summary: Consultar mangá
+      tags: [Usuarios]
+      operationId: obterPerfil
+      summary: Dados do usuário autenticado
       responses:
-        "200": { description: Mangá encontrado }
-        "404": { description: Mangá não encontrado }
-    put:
-      tags: [Mangás]
-      summary: Atualizar mangá
-      security: [{ bearerAuth: [] }]
+        '200':
+          description: Perfil.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioResponse'
+              example:
+                id: 7
+                nome: Maria Leitora
+                email: maria@exemplo.com
+                role: customer
+                totalGasto: 89.7
+                criadoEm: '2026-11-14T13:00:00.000Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    patch:
+      tags: [Usuarios]
+      operationId: atualizarPerfil
+      summary: Atualiza nome e/ou senha
+      description: '`senhaAtual` é obrigatória quando `novaSenha` é enviada.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMeRequest'
+            examples:
+              trocarNome:
+                summary: Só o nome
+                value:
+                  nome: Maria L. Souza
+              trocarSenha:
+                summary: Troca de senha
+                value:
+                  senhaAtual: Segura123
+                  novaSenha: MaisSegura456
       responses:
-        "200": { description: Mangá atualizado }
-        "401": { description: Não autenticado }
-        "403": { description: Acesso administrativo necessário }
+        '200':
+          description: Perfil atualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/obras:
+    get:
+      tags: [Obras]
+      operationId: listarObras
+      summary: Lista paginada do catálogo (cache-aside)
+      description: |
+        Resultado cacheado no Redis em `catalog:obras:list:<hash-dos-filtros>` com TTL
+        `CACHE_TTL_SECONDS`. Qualquer escrita em obras invalida o prefixo `catalog:obras:`.
+      security: []
+      parameters:
+        - name: tipo
+          in: query
+          schema:
+            $ref: '#/components/schemas/TipoObra'
+        - name: busca
+          in: query
+          description: Trecho do nome (ou autor) da obra.
+          schema:
+            type: string
+            maxLength: 100
+          example: dandadan
+        - name: ordenar
+          in: query
+          schema:
+            type: string
+            enum: [recentes, nome, preco-asc, preco-desc, mais-vendidos]
+            default: recentes
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Página de obras.
+          headers:
+            X-Cache:
+              $ref: '#/components/headers/X-Cache'
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedObras'
+              example:
+                data:
+                  - id: 3
+                    tipo: manga
+                    nome: Dandadan
+                    autor: null
+                    descricao: Volume 1 de Dandadan.
+                    volume: 1
+                    preco: 29.9
+                    avaliacao: 5
+                    capaUrl: /files/covers/2b1f0c7e-dandadan.jpg
+                    totalVendido: 4
+                    criadoEm: '2026-11-14T12:00:00.000Z'
+                    atualizadoEm: '2026-11-14T12:30:00.000Z'
+                meta:
+                  page: 1
+                  limit: 12
+                  total: 1
+                  totalPages: 1
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    post:
+      tags: [Obras]
+      operationId: criarObra
+      summary: Cadastra obra (admin)
+      description: |
+        Multipart com os campos da obra e a capa opcional (jpg, png ou webp; até 5 MB;
+        o conteúdo é conferido por magic bytes). Invalida `catalog:obras:` e publica
+        `catalog.obra.updated`.
+      x-required-role: admin
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateObraForm'
+            encoding:
+              capa:
+                contentType: image/jpeg, image/png, image/webp
+      responses:
+        '201':
+          description: Obra criada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObraResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/obras/lote:
+    get:
+      tags: [Obras]
+      operationId: buscarObrasEmLote
+      summary: Busca várias obras por id
+      description: |
+        Usada pelo order-service (Anti-Corruption Layer `CatalogClient`) para obter
+        preço e dados atuais no checkout. Ids inexistentes simplesmente não aparecem
+        na resposta. Declarada antes de `/api/obras/{id}` no controller.
+      security: []
+      parameters:
+        - name: ids
+          in: query
+          required: true
+          description: Lista de ids separados por vírgula (máximo 50).
+          schema:
+            type: string
+            pattern: '^\d+(,\d+){0,49}$'
+          example: 1,2,3
+      responses:
+        '200':
+          description: Obras encontradas.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 50
+                items:
+                  $ref: '#/components/schemas/ObraResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/obras/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Obras]
+      operationId: obterObra
+      summary: Detalhe de uma obra (cache-aside)
+      security: []
+      responses:
+        '200':
+          description: Obra.
+          headers:
+            X-Cache:
+              $ref: '#/components/headers/X-Cache'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObraResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Obras]
+      operationId: atualizarObra
+      summary: Atualiza obra (admin)
+      description: |
+        Todos os campos são opcionais. Uma nova `capa` substitui e apaga a anterior.
+        Invalida `catalog:obras:` e publica `catalog.obra.updated` (o order-service
+        invalida `orders:catalog-precos:`).
+      x-required-role: admin
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UpdateObraForm'
+      responses:
+        '200':
+          description: Obra atualizada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObraResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
     delete:
-      tags: [Mangás]
-      summary: Remover mangá
-      security: [{ bearerAuth: [] }]
+      tags: [Obras]
+      operationId: excluirObra
+      summary: Exclui obra (admin)
+      description: |
+        Apaga capítulos e páginas (cascade), a capa e a pasta de páginas no volume
+        de uploads. Publica `catalog.obra.deleted`.
+      x-required-role: admin
       responses:
-        "200": { description: Mangá removido }
-        "404": { description: Mangá não encontrado }
-        "401": { description: Não autenticado }
-        "403": { description: Acesso administrativo necessário }
-  /livros:
-    get:
-      tags: [Livros]
-      summary: Listar livros
-      responses:
-        "200": { description: Lista de livros }
-    post:
-      tags: [Livros]
-      summary: Criar livro
-      security: [{ bearerAuth: [] }]
-      responses:
-        "201": { description: Livro criado }
-        "401": { description: Não autenticado }
-        "403": { description: Acesso administrativo necessário }
-  /livros/{id}:
+        '204':
+          description: Obra excluída.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/obras/{id}/capitulos:
     parameters:
-      - $ref: "#/components/parameters/Id"
+      - $ref: '#/components/parameters/IdPath'
     get:
-      tags: [Livros]
-      summary: Consultar livro
+      tags: [Capitulos]
+      operationId: listarCapitulos
+      summary: Capítulos da obra ordenados por número (cache-aside)
+      security: []
       responses:
-        "200": { description: Livro encontrado }
-        "404": { description: Livro não encontrado }
-    put:
-      tags: [Livros]
-      summary: Atualizar livro
-      security: [{ bearerAuth: [] }]
+        '200':
+          description: Lista de capítulos.
+          headers:
+            X-Cache:
+              $ref: '#/components/headers/X-Cache'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CapituloResponse'
+              example:
+                - id: 10
+                  obraId: 3
+                  numero: 1
+                  titulo: O encontro
+                  totalPaginas: 18
+                  criadoEm: '2026-11-14T12:10:00.000Z'
+                - id: 11
+                  obraId: 3
+                  numero: 1.5
+                  titulo: Extra
+                  totalPaginas: 4
+                  criadoEm: '2026-11-14T12:20:00.000Z'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Capitulos]
+      operationId: criarCapitulo
+      summary: Cria capítulo (admin)
+      x-required-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCapituloRequest'
+            example:
+              numero: 2
+              titulo: A volta para casa
       responses:
-        "200": { description: Livro atualizado }
-        "401": { description: Não autenticado }
-        "403": { description: Acesso administrativo necessário }
+        '201':
+          description: Capítulo criado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapituloResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/capitulos/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    patch:
+      tags: [Capitulos]
+      operationId: atualizarCapitulo
+      summary: Atualiza capítulo (admin)
+      x-required-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCapituloRequest'
+      responses:
+        '200':
+          description: Capítulo atualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapituloResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
     delete:
-      tags: [Livros]
-      summary: Remover livro
-      security: [{ bearerAuth: [] }]
+      tags: [Capitulos]
+      operationId: excluirCapitulo
+      summary: Exclui capítulo e suas páginas (admin)
+      x-required-role: admin
       responses:
-        "200": { description: Livro removido }
-        "404": { description: Livro não encontrado }
-        "401": { description: Não autenticado }
-        "403": { description: Acesso administrativo necessário }
-  /novels:
-    get:
-      tags: [Novels]
-      summary: Listar novels
-      responses:
-        "200": { description: Lista de novels }
-    post:
-      tags: [Novels]
-      summary: Criar novel
-      security: [{ bearerAuth: [] }]
-      responses:
-        "201": { description: Novel criada }
-        "401": { description: Não autenticado }
-        "403": { description: Acesso administrativo necessário }
-  /capitulos/manga/{manga_id}:
+        '204':
+          description: Capítulo excluído.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/capitulos/{id}/paginas:
     parameters:
-      - name: manga_id
-        in: path
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Paginas]
+      operationId: listarPaginas
+      summary: Todas as páginas do capítulo em ordem (cache-aside)
+      security: []
+      responses:
+        '200':
+          description: Páginas ordenadas por número.
+          headers:
+            X-Cache:
+              $ref: '#/components/headers/X-Cache'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaginaResponse'
+              example:
+                - id: 101
+                  capituloId: 10
+                  numero: 1
+                  imagemUrl: /files/pages/obra_3/capitulo_10/8c1e4b2a.jpg
+                - id: 102
+                  capituloId: 10
+                  numero: 2
+                  imagemUrl: /files/pages/obra_3/capitulo_10/f02d9e71.jpg
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Paginas]
+      operationId: enviarPagina
+      summary: Envia uma página (admin)
+      description: Sem `numero`, a página entra como a próxima do capítulo.
+      x-required-role: admin
+      requestBody:
         required: true
-        schema: { type: integer }
-    get:
-      tags: [Capítulos]
-      summary: Listar capítulos de um mangá
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadPaginaForm'
+            encoding:
+              imagem:
+                contentType: image/jpeg, image/png, image/webp
       responses:
-        "200": { description: Lista de capítulos }
-  /capitulos:
-    post:
-      tags: [Capítulos]
-      summary: Criar capítulo
-      security: [{ bearerAuth: [] }]
-      responses:
-        "201": { description: Capítulo criado }
-        "401": { description: Não autenticado }
-        "403": { description: Acesso administrativo necessário }
-  /capitulos/{id}:
+        '201':
+          description: Página criada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginaResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/paginas/{id}:
     parameters:
-      - $ref: "#/components/parameters/Id"
-    put:
-      tags: [Capítulos]
-      summary: Atualizar capítulo
-      security: [{ bearerAuth: [] }]
-      responses:
-        "200": { description: Capítulo atualizado }
+      - $ref: '#/components/parameters/IdPath'
     delete:
-      tags: [Capítulos]
-      summary: Remover capítulo
-      security: [{ bearerAuth: [] }]
+      tags: [Paginas]
+      operationId: excluirPagina
+      summary: Exclui página (admin)
+      x-required-role: admin
       responses:
-        "200": { description: Capítulo removido }
-        "404": { description: Capítulo não encontrado }
-  /compras/finalizar:
+        '204':
+          description: Página excluída (arquivo removido do volume).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/pedidos:
     post:
-      tags: [Compras]
-      summary: Finalizar compra do usuário autenticado
-      security: [{ bearerAuth: [] }]
+      tags: [Pedidos]
+      operationId: criarPedido
+      summary: Finaliza a compra (checkout)
+      description: |
+        O cliente envia apenas `obraId` e `quantidade`; preço, nome e capa vêm SEMPRE
+        do catálogo (`GET /api/obras/lote`, com timeout, retry e circuit breaker).
+        Itens repetidos da mesma obra são somados. Ao concluir, publica `order.completed`.
+
+        Idempotência: com o mesmo `Idempotency-Key` e o mesmo usuário, a operação
+        devolve 200 com o pedido já existente em vez de criar outro.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePedidoRequest'
+            example:
+              itens:
+                - obraId: 3
+                  quantidade: 2
+                - obraId: 5
+                  quantidade: 1
       responses:
-        "200": { description: Compra registrada }
-        "400": { description: Itens inválidos ou indisponíveis }
-        "401": { description: Não autenticado }
-  /compras/historico:
+        '201':
+          description: Pedido criado e concluído.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PedidoResponse'
+              example:
+                id: 12
+                usuarioId: 7
+                status: CONCLUIDO
+                total: 89.7
+                itens:
+                  - obraId: 3
+                    nome: Dandadan
+                    tipo: manga
+                    capaUrl: /files/covers/2b1f0c7e-dandadan.jpg
+                    precoUnitario: 29.9
+                    quantidade: 2
+                    subtotal: 59.8
+                  - obraId: 5
+                    nome: Meiruko-chan
+                    tipo: manga
+                    capaUrl: /files/covers/7a9d3c11-meiruko-chan.jpg
+                    precoUnitario: 29.9
+                    quantidade: 1
+                    subtotal: 29.9
+                criadoEm: '2026-11-14T13:05:00.000Z'
+        '200':
+          description: Repetição com o mesmo `Idempotency-Key` — devolve o pedido existente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PedidoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          description: Uma ou mais obras não existem no catálogo.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+              example:
+                statusCode: 422
+                error: Unprocessable Entity
+                message: 'Obras inexistentes no catálogo: 99, 120'
+                path: /api/pedidos
+                timestamp: '2026-11-14T13:05:00.000Z'
+                requestId: 9a7d0b1e-2c55-4f8e-8f0e-2b1c3d4e5f60
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
     get:
-      tags: [Compras]
-      summary: Consultar histórico do usuário autenticado
-      security: [{ bearerAuth: [] }]
+      tags: [Pedidos]
+      operationId: listarPedidos
+      summary: Histórico do usuário autenticado (mais recentes primeiro)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
       responses:
-        "200": { description: Histórico de compras }
-        "401": { description: Não autenticado }
-  /page/{capitulo_id}:
+        '200':
+          description: Página de pedidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPedidos'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/pedidos/{id}:
     parameters:
-      - name: capitulo_id
-        in: path
-        required: true
-        schema: { type: integer }
+      - $ref: '#/components/parameters/IdPath'
     get:
-      tags: [Páginas]
-      summary: Consultar páginas de um capítulo
+      tags: [Pedidos]
+      operationId: obterPedido
+      summary: Detalhe de um pedido (dono ou admin)
+      description: Retorna 404 também quando o pedido existe mas pertence a outro usuário.
       responses:
-        "200": { description: Lista de páginas }
-  /page/{manga_id}/{capitulo_id}/{numero_pagina}:
-    parameters:
-      - name: manga_id
-        in: path
-        required: true
-        schema: { type: integer }
-      - name: capitulo_id
-        in: path
-        required: true
-        schema: { type: integer }
-      - name: numero_pagina
-        in: path
-        required: true
-        schema: { type: integer }
-    post:
-      tags: [Páginas]
-      summary: Enviar página de capítulo
-      security: [{ bearerAuth: [] }]
+        '200':
+          description: Pedido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PedidoResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /health:
+    get:
+      tags: [Operacao]
+      operationId: health
+      summary: Healthcheck (interno)
+      description: |
+        Usado pelo healthcheck do Docker Compose. Verifica banco (e Redis quando
+        configurado). Não passa pelo gateway nem pelo prefixo `/api`.
+      security: []
+      servers:
+        - url: http://auth-service:3001
+        - url: http://catalog-service:3002
+        - url: http://order-service:3003
       responses:
-        "201": { description: Página enviada }
-        "401": { description: Não autenticado }
-        "403": { description: Acesso administrativo necessário }
+        '200':
+          description: Serviço e dependências saudáveis.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: ok
+                info:
+                  database:
+                    status: up
+                  redis:
+                    status: up
+                error: {}
+                details:
+                  database:
+                    status: up
+                  redis:
+                    status: up
+        '503':
+          description: Alguma dependência indisponível.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /metrics:
+    get:
+      tags: [Operacao]
+      operationId: metrics
+      summary: Métricas Prometheus (interno)
+      description: |
+        Formato texto do Prometheus: métricas padrão do processo Node e o histograma
+        `http_request_duration_seconds{method,route,status_code,service}`.
+      security: []
+      servers:
+        - url: http://auth-service:3001
+        - url: http://catalog-service:3002
+        - url: http://order-service:3003
+      responses:
+        '200':
+          description: Exposição de métricas.
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: |
+                # HELP http_request_duration_seconds Duração das requisições HTTP
+                # TYPE http_request_duration_seconds histogram
+                http_request_duration_seconds_bucket{le="0.1",method="GET",route="/api/obras",status_code="200",service="catalog-service"} 42
+
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+      description: 'JWT HS256 com payload `{ sub, email, nome, role }`, validade `JWT_EXPIRES_IN` (padrão 1h).'
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: kumoko_token
+      description: Mesmo JWT, gravado pelo login em cookie httpOnly (usado pelo frontend web).
+
   parameters:
-    Id:
+    IdPath:
       name: id
       in: path
       required: true
-      schema: { type: integer }
+      schema:
+        type: integer
+        minimum: 1
+      example: 3
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 12
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: Chave única por tentativa de compra (o frontend usa um UUID v4).
+      schema:
+        type: string
+        maxLength: 64
+      example: 6f1d1d3e-5a7b-4c1e-9d2f-0b8a7c6e5d4f
+
+  headers:
+    X-Request-Id:
+      description: Id de correlação da requisição (presente em logs, eventos e erros).
+      schema:
+        type: string
+      example: 3f1c2a9e-0d4b-4b8e-9a51-7b6f0f2d1c11
+    X-Cache:
+      description: Resultado do cache-aside no Redis para esta resposta.
+      schema:
+        type: string
+        enum: [HIT, MISS]
+
+  responses:
+    BadRequest:
+      description: Dados de entrada inválidos.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+          example:
+            statusCode: 400
+            error: Bad Request
+            message:
+              - cpf informado é inválido
+              - senha deve ter no mínimo 8 caracteres com letras e números
+            path: /api/auth/register
+            timestamp: '2026-11-14T13:00:00.000Z'
+            requestId: 0b6e3d2a-1f4c-4a9b-8e7d-6c5b4a392817
+    Unauthorized:
+      description: Token ausente, inválido ou expirado.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+          example:
+            statusCode: 401
+            error: Unauthorized
+            message: Autenticação necessária.
+            path: /api/users/me
+            timestamp: '2026-11-14T13:00:00.000Z'
+            requestId: 5d4c3b2a-1908-4f7e-a6d5-c4b3a2918070
+    Forbidden:
+      description: Usuário autenticado sem o papel exigido (`admin`).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+          example:
+            statusCode: 403
+            error: Forbidden
+            message: Acesso restrito a administradores.
+            path: /api/obras
+            timestamp: '2026-11-14T13:00:00.000Z'
+            requestId: 1a2b3c4d-5e6f-4a8b-9c0d-1e2f3a4b5c6d
+    NotFound:
+      description: Recurso não encontrado.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+          example:
+            statusCode: 404
+            error: Not Found
+            message: Obra não encontrada.
+            path: /api/obras/999
+            timestamp: '2026-11-14T13:00:00.000Z'
+            requestId: 7e6d5c4b-3a29-4180-9f8e-7d6c5b4a3928
+    Conflict:
+      description: Violação de unicidade (e-mail/CPF já cadastrado, número de capítulo ou página repetido).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+          example:
+            statusCode: 409
+            error: Conflict
+            message: E-mail ou CPF já cadastrado.
+            path: /api/auth/register
+            timestamp: '2026-11-14T13:00:00.000Z'
+            requestId: 2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e6f
+    TooManyRequests:
+      description: Limite de requisições excedido (throttler do serviço ou rate limit do gateway).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+    ServiceUnavailable:
+      description: Dependência indisponível (catálogo fora do ar ou circuit breaker aberto).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Erro'
+          example:
+            statusCode: 503
+            error: Service Unavailable
+            message: Catálogo indisponível no momento. Tente novamente em instantes.
+            path: /api/pedidos
+            timestamp: '2026-11-14T13:05:00.000Z'
+            requestId: 9a7d0b1e-2c55-4f8e-8f0e-2b1c3d4e5f60
+
+  schemas:
+    Erro:
+      type: object
+      description: Formato único de erro produzido pelo `AllExceptionsFilter`. Erros 5xx nunca expõem detalhes internos.
+      required: [statusCode, error, message, path, timestamp, requestId]
+      properties:
+        statusCode:
+          type: integer
+          example: 404
+        error:
+          type: string
+          example: Not Found
+        message:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+        path:
+          type: string
+          example: /api/obras/999
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+
+    Role:
+      type: string
+      enum: [admin, customer]
+
+    TipoObra:
+      type: string
+      enum: [manga, livro, novel]
+
+    RegisterRequest:
+      type: object
+      additionalProperties: false
+      required: [nome, email, cpf, senha]
+      properties:
+        nome:
+          type: string
+          minLength: 2
+        email:
+          type: string
+          format: email
+        cpf:
+          type: string
+          description: CPF com dígitos verificadores válidos (somente números ou com máscara).
+          example: '52998224725'
+        senha:
+          type: string
+          format: password
+          minLength: 8
+          description: Mínimo de 8 caracteres contendo letra e número.
+
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, senha]
+      properties:
+        email:
+          type: string
+          format: email
+        senha:
+          type: string
+          format: password
+
+    LoginResponse:
+      type: object
+      required: [accessToken, tokenType, expiresIn, usuario]
+      properties:
+        accessToken:
+          type: string
+        tokenType:
+          type: string
+          const: Bearer
+        expiresIn:
+          type: integer
+          description: Validade do token em segundos.
+          example: 3600
+        usuario:
+          $ref: '#/components/schemas/UsuarioResponse'
+
+    UpdateMeRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        nome:
+          type: string
+          minLength: 2
+        senhaAtual:
+          type: string
+          format: password
+        novaSenha:
+          type: string
+          format: password
+          minLength: 8
+      dependentRequired:
+        novaSenha: [senhaAtual]
+
+    UsuarioResponse:
+      type: object
+      description: Nunca inclui senha ou CPF.
+      required: [id, nome, email, role, totalGasto, criadoEm]
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          $ref: '#/components/schemas/Role'
+        totalGasto:
+          type: number
+          description: Soma dos pedidos concluídos (atualizada pelo evento `order.completed`).
+        criadoEm:
+          type: string
+          format: date-time
+
+    ObraResponse:
+      type: object
+      required: [id, tipo, nome, autor, descricao, volume, preco, avaliacao, capaUrl, totalVendido, criadoEm, atualizadoEm]
+      properties:
+        id:
+          type: integer
+        tipo:
+          $ref: '#/components/schemas/TipoObra'
+        nome:
+          type: string
+        autor:
+          type: [string, 'null']
+        descricao:
+          type: [string, 'null']
+        volume:
+          type: [integer, 'null']
+        preco:
+          type: number
+          minimum: 0
+          example: 29.9
+        avaliacao:
+          type: number
+          minimum: 0
+          maximum: 5
+          example: 4.5
+        capaUrl:
+          type: [string, 'null']
+          description: URL pública servida pelo gateway em `/files/`.
+          example: /files/covers/2b1f0c7e-dandadan.jpg
+        totalVendido:
+          type: integer
+          description: Atualizado pelo evento `order.completed`.
+        criadoEm:
+          type: string
+          format: date-time
+        atualizadoEm:
+          type: string
+          format: date-time
+
+    CreateObraForm:
+      type: object
+      required: [tipo, nome, preco]
+      properties:
+        tipo:
+          $ref: '#/components/schemas/TipoObra'
+        nome:
+          type: string
+          minLength: 1
+        autor:
+          type: string
+        descricao:
+          type: string
+        volume:
+          type: integer
+          minimum: 1
+        preco:
+          type: number
+          minimum: 0
+        avaliacao:
+          type: number
+          minimum: 0
+          maximum: 5
+          default: 5
+        capa:
+          type: string
+          format: binary
+          description: jpg, png ou webp até 5 MB.
+
+    UpdateObraForm:
+      type: object
+      description: Todos os campos opcionais; enviar `capa` substitui a capa atual.
+      properties:
+        tipo:
+          $ref: '#/components/schemas/TipoObra'
+        nome:
+          type: string
+          minLength: 1
+        autor:
+          type: string
+        descricao:
+          type: string
+        volume:
+          type: integer
+          minimum: 1
+        preco:
+          type: number
+          minimum: 0
+        avaliacao:
+          type: number
+          minimum: 0
+          maximum: 5
+        capa:
+          type: string
+          format: binary
+
+    CapituloResponse:
+      type: object
+      required: [id, obraId, numero, titulo, totalPaginas, criadoEm]
+      properties:
+        id:
+          type: integer
+        obraId:
+          type: integer
+        numero:
+          type: number
+          description: Permite capítulos intermediários (ex. 10.5).
+        titulo:
+          type: [string, 'null']
+        totalPaginas:
+          type: integer
+        criadoEm:
+          type: string
+          format: date-time
+
+    CreateCapituloRequest:
+      type: object
+      additionalProperties: false
+      required: [numero]
+      properties:
+        numero:
+          type: number
+          minimum: 0
+        titulo:
+          type: string
+
+    UpdateCapituloRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        numero:
+          type: number
+          minimum: 0
+        titulo:
+          type: string
+
+    PaginaResponse:
+      type: object
+      required: [id, capituloId, numero, imagemUrl]
+      properties:
+        id:
+          type: integer
+        capituloId:
+          type: integer
+        numero:
+          type: integer
+          minimum: 1
+        imagemUrl:
+          type: string
+          example: /files/pages/obra_3/capitulo_10/8c1e4b2a.jpg
+
+    UploadPaginaForm:
+      type: object
+      required: [imagem]
+      properties:
+        imagem:
+          type: string
+          format: binary
+          description: jpg, png ou webp até 5 MB.
+        numero:
+          type: integer
+          minimum: 1
+          description: Opcional; padrão = próxima página do capítulo.
+
+    StatusPedido:
+      type: string
+      enum: [CONCLUIDO, CANCELADO]
+
+    CreatePedidoRequest:
+      type: object
+      additionalProperties: false
+      required: [itens]
+      properties:
+        itens:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            type: object
+            additionalProperties: false
+            required: [obraId, quantidade]
+            properties:
+              obraId:
+                type: integer
+                minimum: 1
+              quantidade:
+                type: integer
+                minimum: 1
+                maximum: 99
+
+    ItemPedidoResponse:
+      type: object
+      required: [obraId, nome, tipo, capaUrl, precoUnitario, quantidade, subtotal]
+      properties:
+        obraId:
+          type: integer
+        nome:
+          type: string
+          description: Snapshot do nome no momento da compra.
+        tipo:
+          $ref: '#/components/schemas/TipoObra'
+        capaUrl:
+          type: [string, 'null']
+        precoUnitario:
+          type: number
+          description: Snapshot do preço vindo do catálogo.
+        quantidade:
+          type: integer
+          minimum: 1
+          maximum: 99
+        subtotal:
+          type: number
+
+    PedidoResponse:
+      type: object
+      required: [id, usuarioId, status, total, itens, criadoEm]
+      properties:
+        id:
+          type: integer
+        usuarioId:
+          type: integer
+        status:
+          $ref: '#/components/schemas/StatusPedido'
+        total:
+          type: number
+          description: Soma dos subtotais calculada pelo aggregate `Pedido`.
+        itens:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemPedidoResponse'
+        criadoEm:
+          type: string
+          format: date-time
+
+    PaginationMeta:
+      type: object
+      required: [page, limit, total, totalPages]
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    Paginated:
+      type: object
+      description: Envelope genérico de paginação (`Paginated<T>` de `@kumoko/common`).
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items: {}
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    PaginatedObras:
+      allOf:
+        - $ref: '#/components/schemas/Paginated'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/ObraResponse'
+
+    PaginatedPedidos:
+      allOf:
+        - $ref: '#/components/schemas/Paginated'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/PedidoResponse'
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, error]
+        info:
+          type: object
+        error:
+          type: object
+        details:
+          type: object
