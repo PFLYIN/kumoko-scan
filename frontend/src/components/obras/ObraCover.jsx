@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { BookOpen } from 'lucide-react';
 
 // Capa da obra com placeholder quando nao ha imagem (ou ela falha ao carregar).
-export default function ObraCover({ src, alt, className = '' }) {
+// width/height declaram a proporcao 2:3 da capa (evita layout shift mesmo fora de um container com aspect-ratio);
+// o tamanho exibido continua vindo do CSS. Use a variante adequada: capaThumbUrl em cards, capaMediaUrl no detalhe.
+export default function ObraCover({ src, alt, titulo, className = '', width = 360, height = 540 }) {
   const [failedSrc, setFailedSrc] = useState(null);
   const showImage = src && failedSrc !== src;
 
@@ -12,14 +14,21 @@ export default function ObraCover({ src, alt, className = '' }) {
         <img
           src={src}
           alt={alt}
+          width={width}
+          height={height}
           loading="lazy"
           decoding="async"
           onError={() => setFailedSrc(src)}
           className="size-full object-cover"
         />
       ) : (
-        <div className="flex size-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-ink-700 to-ink-850 text-zinc-500">
+        <div className="flex size-full flex-col items-center justify-center gap-3 bg-gradient-to-br from-ink-700 via-ink-800 to-brand-600/20 p-4 text-center text-zinc-500">
           <BookOpen className="size-10" aria-hidden="true" />
+          {titulo ? (
+            <span className="line-clamp-4 text-sm font-semibold text-zinc-300" aria-hidden="true">
+              {titulo}
+            </span>
+          ) : null}
           <span className="sr-only">{alt}</span>
         </div>
       )}

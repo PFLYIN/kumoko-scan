@@ -28,7 +28,14 @@ import {
   ApiExtraModels,
 } from '@nestjs/swagger';
 import { setCacheHeader } from '@kumoko/cache';
-import { AUTH_COOKIE_NAME, createImageUploadOptions, Public, Roles } from '@kumoko/security';
+import {
+  AUTH_COOKIE_NAME,
+  createImageUploadOptions,
+  Public,
+  PUBLIC_READ_THROTTLE,
+  Roles,
+  Throttle,
+} from '@kumoko/security';
 import type { Response } from 'express';
 import { ErrorResponseDto } from '../../../shared/dto/error-response.dto';
 import { ParseIdPipe } from '../../../shared/http/parse-id.pipe';
@@ -36,6 +43,11 @@ import { CAPA_FILE_SCHEMA, CreateObraDto } from '../dto/create-obra.dto';
 import { ListObrasQueryDto } from '../dto/list-obras-query.dto';
 import { ObraResponseDto, PaginatedObrasResponseDto } from '../dto/obra-response.dto';
 import { UpdateObraDto } from '../dto/update-obra.dto';
+import {
+  GeneroContagemDto,
+  RELACIONADAS_LIMIT_PADRAO,
+  RelacionadasQueryDto,
+} from '../dto/relacionadas-query.dto';
 import { LOTE_MAX_IDS } from '../domain/lote-ids';
 import { ObrasService } from '../services/obras.service';
 
@@ -50,6 +62,7 @@ export class ObrasController {
   constructor(private readonly obras: ObrasService) {}
 
   @Public()
+  @Throttle(PUBLIC_READ_THROTTLE)
   @Get()
   @ApiOperation({ summary: 'Lista obras com filtros, busca, ordenacao e paginacao (cache)' })
   @ApiOkResponse({ type: PaginatedObrasResponseDto, headers: CACHE_HEADER_DOC })
@@ -60,8 +73,21 @@ export class ObrasController {
     return result.value;
   }
 
+  // Declarada ANTES de :id para "generos" nao ser interpretado como id.
+  @Public()
+  @Throttle(PUBLIC_READ_THROTTLE)
+  @Get('generos')
+  @ApiOperation({ summary: 'Gêneros em uso com a quantidade de obras, do mais comum ao menos (cache)' })
+  @ApiOkResponse({ type: [GeneroContagemDto], headers: CACHE_HEADER_DOC })
+  async generos(@Res({ passthrough: true }) res: Response) {
+    const result = await this.obras.listarGeneros();
+    setCacheHeader(res, result.hit);
+    return result.value;
+  }
+
   // Declarada ANTES de :id para "lote" nao ser interpretado como id.
   @Public()
+  @Throttle(PUBLIC_READ_THROTTLE)
   @Get('lote')
   @ApiOperation({
     summary: `Busca varias obras por id (maximo ${LOTE_MAX_IDS}); ids inexistentes sao ignorados`,
@@ -78,6 +104,7 @@ export class ObrasController {
   }
 
   @Public()
+  @Throttle(PUBLIC_READ_THROTTLE)
   @Get(':id')
   @ApiOperation({ summary: 'Detalhe de uma obra (cache)' })
   @ApiOkResponse({ type: ObraResponseDto, headers: CACHE_HEADER_DOC })
@@ -85,6 +112,25 @@ export class ObrasController {
   @ApiResponse({ status: 404, description: 'Obra nao encontrada', type: ErrorResponseDto })
   async findOne(@Param('id', ParseIdPipe) id: number, @Res({ passthrough: true }) res: Response) {
     const result = await this.obras.findById(id);
+    setCacheHeader(res, result.hit);
+    return result.value;
+  }
+
+  @Public()
+  @Throttle(PUBLIC_READ_THROTTLE)
+  @Get(':id/relacionadas')
+  @ApiOperation({
+    summary: 'Obras relacionadas: gêneros em comum e mesmo tipo, desempate por vendas (cache)',
+  })
+  @ApiOkResponse({ type: [ObraResponseDto], headers: CACHE_HEADER_DOC })
+  @ApiResponse({ status: 400, description: 'Id ou limit invalido', type: ErrorResponseDto })
+  @ApiResponse({ status: 404, description: 'Obra nao encontrada', type: ErrorResponseDto })
+  async relacionadas(
+    @Param('id', ParseIdPipe) id: number,
+    @Query() query: RelacionadasQueryDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.obras.findRelacionadas(id, query.limit ?? RELACIONADAS_LIMIT_PADRAO);
     setCacheHeader(res, result.hit);
     return result.value;
   }

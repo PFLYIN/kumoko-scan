@@ -42,6 +42,8 @@ tags:
     description: Páginas de um capítulo para o leitor (catalog-service).
   - name: Pedidos
     description: Checkout e histórico de compras (order-service).
+  - name: Admin
+    description: Painel administrativo (role admin) — vendas (order-service) e usuários (auth-service).
   - name: Operacao
     description: Endpoints internos da rede `kumoko_net`; NÃO são expostos pelo gateway.
 
@@ -231,6 +233,86 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /api/users/admin/resumo:
+    get:
+      tags: [Admin]
+      operationId: resumoUsuarios
+      summary: Contadores de usuários (admin)
+      responses:
+        '200':
+          description: Contadores.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumoUsuarios'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/users/admin:
+    get:
+      tags: [Admin]
+      operationId: listarUsuarios
+      summary: Lista usuários com busca, filtro de papel e ordenação (admin)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - { name: busca, in: query, schema: { type: string, maxLength: 100 }, description: Nome ou e-mail (contém). }
+        - { name: role, in: query, schema: { $ref: '#/components/schemas/Role' } }
+        - { name: ids, in: query, schema: { type: string, example: '3,7,12' }, description: Ids separados por vírgula (máx. 50). }
+        - { name: ordenar, in: query, schema: { type: string, enum: [recentes, nome, maior-gasto], default: recentes } }
+      responses:
+        '200':
+          description: Página de usuários.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUsuarios'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/users/{id}/role:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    patch:
+      tags: [Admin]
+      operationId: alterarRole
+      summary: Promove ou rebaixa um usuário (admin)
+      description: >-
+        O admin não pode alterar o próprio papel (400) nem remover o último administrador (409).
+        O novo papel vale no próximo login (o JWT atual mantém o papel antigo até expirar).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role: { $ref: '#/components/schemas/Role' }
+      responses:
+        '200':
+          description: Usuário atualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
   /api/obras:
     get:
       tags: [Obras]
@@ -252,6 +334,15 @@ paths:
             type: string
             maxLength: 100
           example: dandadan
+        - name: genero
+          in: query
+          description: >-
+            Filtra obras que tenham o gênero (comparação sem diferenciar maiúsculas nem acentos;
+            `acao` encontra `Ação`). Entra na chave de cache.
+          schema:
+            type: string
+            maxLength: 30
+          example: Fantasia
         - name: ordenar
           in: query
           schema:
@@ -279,11 +370,15 @@ paths:
                     nome: Dandadan
                     autor: null
                     descricao: Volume 1 de Dandadan.
+                    generos: [Ação, Sobrenatural, Comédia]
                     volume: 1
                     preco: 29.9
                     avaliacao: 5
                     capaUrl: /files/covers/2b1f0c7e-dandadan.jpg
+                    capaThumbUrl: /files/covers/2b1f0c7e-dandadan.thumb.webp
+                    capaMediaUrl: /files/covers/2b1f0c7e-dandadan.medium.webp
                     totalVendido: 4
+                    totalCapitulos: 12
                     criadoEm: '2026-11-14T12:00:00.000Z'
                     atualizadoEm: '2026-11-14T12:30:00.000Z'
                 meta:
@@ -324,6 +419,70 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+
+  /api/obras/generos:
+    get:
+      tags: [Obras]
+      operationId: listarGeneros
+      summary: Gêneros em uso com a quantidade de obras (cache-aside)
+      description: |
+        Ordenado do mais comum ao menos comum (empate: alfabética). Cacheado em
+        `catalog:obras:generos`; invalidado junto com o prefixo `catalog:obras:`.
+        Declarada antes de `/api/obras/{id}` no controller.
+      security: []
+      responses:
+        '200':
+          description: Gêneros e contagem.
+          headers:
+            X-Cache:
+              $ref: '#/components/headers/X-Cache'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GeneroContagem'
+              example:
+                - { genero: Fantasia, total: 12 }
+                - { genero: Ação, total: 9 }
+
+  /api/obras/{id}/relacionadas:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Obras]
+      operationId: listarObrasRelacionadas
+      summary: Obras relacionadas (gêneros em comum e mesmo tipo; cache-aside)
+      description: |
+        Pontuação: 2 pontos por gênero em comum + 1 se for do mesmo tipo; obras sem afinidade
+        ficam de fora; empate por mais vendidas, avaliação e id. Exclui a própria obra.
+        Cacheado em `catalog:obras:relacionadas:<id>:<limit>`; qualquer escrita em obras invalida.
+      security: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+            default: 6
+      responses:
+        '200':
+          description: Até `limit` obras.
+          headers:
+            X-Cache:
+              $ref: '#/components/headers/X-Cache'
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 12
+                items:
+                  $ref: '#/components/schemas/ObraResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /api/obras/lote:
     get:
@@ -407,6 +566,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          description: Mudança para livro de uma obra que ainda tem capítulos (livros não têm capítulos online).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
     delete:
       tags: [Obras]
       operationId: excluirObra
@@ -491,6 +656,12 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '422':
+          description: A obra é um livro; apenas mangás e light novels aceitam capítulos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
 
   /api/capitulos/{id}:
     parameters:
@@ -563,10 +734,12 @@ paths:
                   capituloId: 10
                   numero: 1
                   imagemUrl: /files/pages/obra_3/capitulo_10/8c1e4b2a.jpg
+                  imagemOtimizadaUrl: /files/pages/obra_3/capitulo_10/8c1e4b2a.reader.webp
                 - id: 102
                   capituloId: 10
                   numero: 2
                   imagemUrl: /files/pages/obra_3/capitulo_10/f02d9e71.jpg
+                  imagemOtimizadaUrl: /files/pages/obra_3/capitulo_10/f02d9e71.reader.webp
         '404':
           $ref: '#/components/responses/NotFound'
     post:
@@ -601,6 +774,54 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+
+  /api/capitulos/{id}/paginas/ordem:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    put:
+      tags: [Paginas]
+      operationId: reordenarPaginas
+      summary: Reordena as páginas do capítulo (admin)
+      description: >-
+        `paginaIds` deve conter exatamente todas as páginas do capítulo, sem repetição. Em uma transação,
+        as páginas são deslocadas (numero + 1000000) e depois renumeradas 1..N na ordem enviada, evitando
+        colisão com UNIQUE(capitulo_id, numero). Invalida `catalog:capitulos:paginas:<id>` e
+        `catalog:obras:capitulos:<obraId>`.
+      x-required-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paginaIds]
+              properties:
+                paginaIds:
+                  type: array
+                  minItems: 1
+                  maxItems: 9999
+                  items:
+                    type: integer
+                    minimum: 1
+            example:
+              paginaIds: [102, 101]
+      responses:
+        '200':
+          description: Páginas na nova ordem (numero 1..N).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaginaResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /api/paginas/{id}:
     parameters:
@@ -718,6 +939,52 @@ paths:
                 $ref: '#/components/schemas/PaginatedPedidos'
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+  /api/pedidos/admin/resumo:
+    get:
+      tags: [Admin]
+      operationId: resumoVendas
+      summary: KPIs, vendas por dia, top obras e pedidos recentes (admin)
+      description: Considera apenas pedidos CONCLUIDO; dias em UTC; cache em memória de 15s.
+      parameters:
+        - { name: dias, in: query, schema: { type: integer, minimum: 1, maximum: 365, default: 30 } }
+      responses:
+        '200':
+          description: Resumo.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumoVendas'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/pedidos/admin:
+    get:
+      tags: [Admin]
+      operationId: listarTodosPedidos
+      summary: Lista todos os pedidos (admin), mais recentes primeiro
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/StatusPedido' } }
+        - { name: usuarioId, in: query, schema: { type: integer, minimum: 1 } }
+      responses:
+        '200':
+          description: Página de pedidos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPedidos'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /api/pedidos/{id}:
     parameters:
@@ -1075,7 +1342,7 @@ components:
 
     ObraResponse:
       type: object
-      required: [id, tipo, nome, autor, descricao, volume, preco, avaliacao, capaUrl, totalVendido, criadoEm, atualizadoEm]
+      required: [id, tipo, nome, autor, descricao, generos, volume, preco, avaliacao, capaUrl, capaThumbUrl, capaMediaUrl, totalVendido, totalCapitulos, criadoEm, atualizadoEm]
       properties:
         id:
           type: integer
@@ -1087,6 +1354,13 @@ components:
           type: [string, 'null']
         descricao:
           type: [string, 'null']
+        generos:
+          type: array
+          maxItems: 8
+          items:
+            type: string
+          description: Gêneros/tags na forma canônica (primeira letra maiúscula, sem duplicados).
+          example: [Ação, Sobrenatural]
         volume:
           type: [integer, 'null']
         preco:
@@ -1102,9 +1376,28 @@ components:
           type: [string, 'null']
           description: URL pública servida pelo gateway em `/files/`.
           example: /files/covers/2b1f0c7e-dandadan.jpg
+        capaThumbUrl:
+          type: [string, 'null']
+          description: >-
+            Capa em WebP com largura 360 px (cards/grids). Igual a `capaUrl` enquanto a variante
+            não existe; `null` quando a obra não tem capa.
+          example: /files/covers/2b1f0c7e-dandadan.thumb.webp
+        capaMediaUrl:
+          type: [string, 'null']
+          description: >-
+            Capa em WebP com largura 720 px (detalhe e formulários de admin). Igual a `capaUrl`
+            enquanto a variante não existe; `null` quando a obra não tem capa.
+          example: /files/covers/2b1f0c7e-dandadan.medium.webp
         totalVendido:
           type: integer
           description: Atualizado pelo evento `order.completed`.
+        totalCapitulos:
+          type: integer
+          minimum: 0
+          description: >-
+            Quantidade de capítulos cadastrados (COUNT agregado em uma única consulta por lista; 0 para livro).
+            Criar/excluir capítulo invalida o cache `catalog:obras:`.
+          example: 12
         criadoEm:
           type: string
           format: date-time
@@ -1125,6 +1418,12 @@ components:
           type: string
         descricao:
           type: string
+        generos:
+          type: string
+          description: >-
+            Gêneros separados por vírgula (máx. 8; cada um de 2 a 30 letras, números, espaços ou hífen).
+            Duplicados (ignorando caixa/acentos) são removidos. Em PATCH, ausente mantém e '' limpa a lista.
+          example: Ação, Fantasia, Isekai
         volume:
           type: integer
           minimum: 1
@@ -1154,6 +1453,12 @@ components:
           type: string
         descricao:
           type: string
+        generos:
+          type: string
+          description: >-
+            Gêneros separados por vírgula (máx. 8; cada um de 2 a 30 letras, números, espaços ou hífen).
+            Duplicados (ignorando caixa/acentos) são removidos. Em PATCH, ausente mantém e '' limpa a lista.
+          example: Ação, Fantasia, Isekai
         volume:
           type: integer
           minimum: 1
@@ -1167,6 +1472,17 @@ components:
         capa:
           type: string
           format: binary
+
+    GeneroContagem:
+      type: object
+      required: [genero, total]
+      properties:
+        genero:
+          type: string
+          example: Fantasia
+        total:
+          type: integer
+          description: Quantidade de obras com o gênero.
 
     CapituloResponse:
       type: object
@@ -1210,7 +1526,7 @@ components:
 
     PaginaResponse:
       type: object
-      required: [id, capituloId, numero, imagemUrl]
+      required: [id, capituloId, numero, imagemUrl, imagemOtimizadaUrl]
       properties:
         id:
           type: integer
@@ -1221,7 +1537,14 @@ components:
           minimum: 1
         imagemUrl:
           type: string
+          description: Imagem original enviada.
           example: /files/pages/obra_3/capitulo_10/8c1e4b2a.jpg
+        imagemOtimizadaUrl:
+          type: string
+          description: >-
+            Versão WebP para leitura (largura máx. 1200 px, sem metadados). Igual a `imagemUrl`
+            enquanto a versão otimizada não existe.
+          example: /files/pages/obra_3/capitulo_10/8c1e4b2a.reader.webp
 
     UploadPaginaForm:
       type: object
@@ -1349,6 +1672,64 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/PedidoResponse'
+
+    PaginatedUsuarios:
+      allOf:
+        - $ref: '#/components/schemas/Paginated'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/UsuarioResponse'
+
+    ResumoUsuarios:
+      type: object
+      required: [totalUsuarios, clientes, admins, novosUltimos30Dias, compradores]
+      properties:
+        totalUsuarios: { type: integer }
+        clientes: { type: integer }
+        admins: { type: integer }
+        novosUltimos30Dias: { type: integer }
+        compradores: { type: integer, description: Usuários com totalGasto > 0 }
+
+    ResumoVendas:
+      type: object
+      required: [dias, receitaTotal, totalPedidos, ticketMedio, clientesCompradores, itensVendidos, receitaPeriodo, pedidosPeriodo, vendasPorDia, topObras, pedidosRecentes]
+      properties:
+        dias: { type: integer, example: 30 }
+        receitaTotal: { type: number, example: 1290.5 }
+        totalPedidos: { type: integer }
+        ticketMedio: { type: number }
+        clientesCompradores: { type: integer }
+        itensVendidos: { type: integer }
+        receitaPeriodo: { type: number }
+        pedidosPeriodo: { type: integer }
+        vendasPorDia:
+          type: array
+          items:
+            type: object
+            properties:
+              data: { type: string, format: date, example: '2026-11-14' }
+              receita: { type: number }
+              pedidos: { type: integer }
+        topObras:
+          type: array
+          maxItems: 5
+          items:
+            type: object
+            properties:
+              obraId: { type: integer }
+              nome: { type: string }
+              tipo: { $ref: '#/components/schemas/TipoObra' }
+              capaUrl: { type: [string, 'null'] }
+              quantidade: { type: integer }
+              receita: { type: number }
+        pedidosRecentes:
+          type: array
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/PedidoResponse'
 
     HealthResponse:
       type: object

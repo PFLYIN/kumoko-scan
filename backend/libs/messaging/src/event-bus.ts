@@ -1,13 +1,22 @@
-import { Inject, Injectable, Logger, type OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, Logger, type OnModuleDestroy, Optional } from '@nestjs/common';
 import { REDIS_CLIENT, REDIS_SUBSCRIBER } from '@kumoko/cache';
-import { getRequestId, runWithRequestContext } from '@kumoko/observability';
+import { getRequestId, MetricsService, runWithRequestContext } from '@kumoko/observability';
 import type { Redis } from 'ioredis';
 import { randomUUID } from 'node:crypto';
 import { type EventEnvelope, isEventEnvelope } from './contracts/event-envelope';
 import { channelForEvent, type EventType } from './contracts/event-types';
 import { MESSAGING_OPTIONS, type MessagingOptions } from './messaging.constants';
 
-export type EventHandler<T> = (payload: T, envelope: EventEnvelope<T>) => Promise<void> | void;
+/**
+ * Retorno opcional do handler. 'duplicate'/'duplicado' ou `false` sinalizam que o evento ja havia
+ * sido processado (idempotencia) e alimentam events_consumed_total{outcome="duplicate"}.
+ */
+export type EventHandlerResult = unknown;
+export type EventHandler<T> = (payload: T, envelope: EventEnvelope<T>) => EventHandlerResult;
+
+export function isDuplicateResult(result: unknown): boolean {
+  return result === 'duplicate' || result === 'duplicado' || result === false;
+}
 
 function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -30,6 +39,7 @@ export class EventBus implements OnModuleDestroy {
     @Inject(REDIS_CLIENT) private readonly publisher: Redis,
     @Inject(REDIS_SUBSCRIBER) private readonly subscriber: Redis,
     @Inject(MESSAGING_OPTIONS) private readonly options: MessagingOptions,
+    @Optional() private readonly metrics?: MetricsService,
   ) {
     this.subscriber.on('message', this.onMessage);
   }
@@ -47,6 +57,7 @@ export class EventBus implements OnModuleDestroy {
     const channel = channelForEvent(type);
     try {
       const receivers = await this.publisher.publish(channel, JSON.stringify(envelope));
+      this.metrics?.recordEventPublished(type);
       this.logger.log(
         `Evento publicado type=${type} id=${id} channel=${channel} source=${envelope.source} receptores=${receivers}`,
       );
@@ -105,9 +116,16 @@ export class EventBus implements OnModuleDestroy {
     await runWithRequestContext({ requestId: correlationId }, async () => {
       for (const handler of handlers) {
         try {
-          await handler(event.payload, event);
-          this.logger.log(`Evento processado type=${event.type} id=${event.id}`);
+          const result = await handler(event.payload, event);
+          if (isDuplicateResult(result)) {
+            this.metrics?.recordEventConsumed(event.type, 'duplicate');
+            this.logger.log(`Evento duplicado ignorado type=${event.type} id=${event.id}`);
+          } else {
+            this.metrics?.recordEventConsumed(event.type, 'processed');
+            this.logger.log(`Evento processado type=${event.type} id=${event.id}`);
+          }
         } catch (error) {
+          this.metrics?.recordEventConsumed(event.type, 'failed');
           this.logger.error(
             `Falha ao processar evento type=${event.type} id=${event.id} erro=${describeError(error)}`,
             error instanceof Error ? error.stack : undefined,

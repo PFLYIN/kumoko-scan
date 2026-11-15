@@ -11,8 +11,9 @@ export default function ObraCard({ obra }) {
     >
       <div className="relative aspect-[2/3] overflow-hidden rounded-xl shadow-lg ring-1 shadow-black/30 ring-white/5 transition-all duration-300 group-hover:-translate-y-1 group-hover:ring-brand-400/40">
         <ObraCover
-          src={obra.capaUrl}
+          src={obra.capaThumbUrl ?? obra.capaUrl}
           alt={`Capa de ${obra.nome}`}
+          titulo={obra.nome}
           className="size-full transition-transform duration-500 group-hover:scale-105"
         />
         <TipoBadge tipo={obra.tipo} className="absolute top-2 left-2 backdrop-blur-md" />

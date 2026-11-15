@@ -17,6 +17,14 @@ export const CatalogCacheKeys = {
   obra(id: number): string {
     return `${OBRAS_CACHE_PREFIX}id:${id}`;
   },
+  /** `catalog:obras:generos` (contagem de obras por genero) */
+  generos(): string {
+    return `${OBRAS_CACHE_PREFIX}generos`;
+  },
+  /** `catalog:obras:relacionadas:<id>:<limit>` */
+  relacionadas(id: number, limit: number): string {
+    return `${OBRAS_CACHE_PREFIX}relacionadas:${id}:${limit}`;
+  },
   /** `catalog:obras:capitulos:<obraId>` (chave exata: invalidar com invalidate, nunca por prefixo). */
   capitulos(obraId: number): string {
     return `${OBRAS_CACHE_PREFIX}capitulos:${obraId}`;

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 export default function Footer() {
   return (
     <footer className="mt-16 border-t border-white/5 bg-ink-950 py-12 text-center">
-      <div className="mx-auto max-w-7xl px-6">
+      <div className="mx-auto max-w-7xl 2xl:max-w-[96rem] px-6">
         <p className="text-xl font-black tracking-tighter text-zinc-100">
           KUMOKO<span className="text-accent-400">SCAN</span>
         </p>

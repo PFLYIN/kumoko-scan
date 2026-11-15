@@ -44,6 +44,7 @@ docs/
 | **Qualidade, Resiliência e Observabilidade** — SLOs/SLIs | [operacao/slo-sli.md](./operacao/slo-sli.md) |
 | Estratégias de resiliência (retry, timeout, circuit breaker) | [operacao/resiliencia.md](./operacao/resiliencia.md) |
 | Plano de observabilidade (métricas e logs) | [operacao/observabilidade.md](./operacao/observabilidade.md) |
+| Auditoria funcional da web (antes/depois) e testes E2E (Playwright) | [qualidade/auditoria-funcional.md](./qualidade/auditoria-funcional.md) |
 | **Entrega Contínua** — pipeline CI/CD (build, test, deploy) | `.github/workflows/ci.yml` + [operacao/deploy.md §1](./operacao/deploy.md) |
 | Estratégia de deploy (rolling + rollback; blue/green como evolução) | [operacao/deploy.md §2–§3](./operacao/deploy.md) |
 | Runbook de incidentes | [operacao/runbook.md](./operacao/runbook.md) |

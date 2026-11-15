@@ -21,6 +21,13 @@ export class ListObrasQueryDto extends PaginationQueryDto {
   @MaxLength(100, { message: 'busca deve ter no máximo 100 caracteres.' })
   busca?: string;
 
+  @ApiPropertyOptional({ description: 'Filtra por gênero (sem diferenciar maiúsculas)', example: 'Fantasia' })
+  @IsOptional()
+  @Transform(emptyToUndefined)
+  @IsString({ message: 'genero deve ser um texto.' })
+  @MaxLength(30, { message: 'genero deve ter no máximo 30 caracteres.' })
+  genero?: string;
+
   @ApiPropertyOptional({ enum: OrdenacaoObras, default: OrdenacaoObras.Recentes })
   @IsOptional()
   @Transform(emptyToUndefined)

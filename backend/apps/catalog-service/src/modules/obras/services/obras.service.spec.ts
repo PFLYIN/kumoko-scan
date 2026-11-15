@@ -1,7 +1,8 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import type { CacheService } from '@kumoko/cache';
 import type { Repository } from 'typeorm';
 import type { CatalogSettings } from '../../../config/catalog-settings';
+import type { ImageProcessorService } from '../../../shared/images/image-processor.service';
 import type { FileStorageService } from '../../../shared/storage/file-storage.service';
 import { TipoObra } from '../domain/tipo-obra';
 import type { Obra } from '../entities/obra.entity';
@@ -15,10 +16,13 @@ function obraFake(over: Partial<Obra> = {}): Obra {
     nome: 'Dandadan',
     autor: null,
     descricao: null,
+    generos: ['Ação', 'Fantasia'],
     volume: 1,
     preco: 39.9,
     avaliacao: 5,
     capaPath: 'covers/antiga.jpg',
+    capaThumbPath: 'covers/antiga.thumb.webp',
+    capaMediaPath: 'covers/antiga.medium.webp',
     totalVendido: 0,
     criadoEm: new Date('2026-11-14T12:00:00Z'),
     atualizadoEm: new Date('2026-11-14T12:00:00Z'),
@@ -28,8 +32,10 @@ function obraFake(over: Partial<Obra> = {}): Obra {
 
 function setup() {
   const repo = {
+    query: jest.fn().mockResolvedValue([{ total: 0 }]),
     findOneBy: jest.fn(),
     findBy: jest.fn(),
+    find: jest.fn().mockResolvedValue([]),
     save: jest.fn(async (o: Obra) => ({ ...obraFake(), ...o, id: o.id ?? 10 })),
     create: jest.fn((o: Partial<Obra>) => ({ ...o }) as Obra),
     delete: jest.fn().mockResolvedValue({ affected: 1 }),
@@ -63,14 +69,21 @@ function setup() {
   };
   const events = { obraAtualizada: jest.fn(), obraExcluida: jest.fn() };
   const settings = { cacheTtlSeconds: 60 } as CatalogSettings;
+  const images = {
+    gerarVariantesCapa: jest.fn().mockResolvedValue({
+      thumbPath: 'covers/nova.thumb.webp',
+      mediaPath: 'covers/nova.medium.webp',
+    }),
+  };
   const service = new ObrasService(
     repo as unknown as Repository<Obra>,
     cache as unknown as CacheService,
     storage as unknown as FileStorageService,
     events as unknown as ObraEventsPublisher,
     settings,
+    images as unknown as ImageProcessorService,
   );
-  return { service, repo, cache, storage, events, store };
+  return { service, repo, cache, storage, events, store, images };
 }
 
 const arquivo = { buffer: Buffer.from('img') } as Express.Multer.File;
@@ -86,6 +99,14 @@ describe('ObrasService', () => {
     expect(repo.findOneBy).toHaveBeenCalledTimes(1);
     expect(cache.getOrSet).toHaveBeenCalledWith('catalog:obras:id:1', 60, expect.any(Function));
     expect(primeira.value).toMatchObject({ id: 1, preco: 39.9, capaUrl: '/files/covers/antiga.jpg' });
+  });
+
+  it('update: 409 ao mudar para livro uma obra que tem capitulos', async () => {
+    const { service, repo } = setup();
+    repo.findOneBy.mockResolvedValue(obraFake());
+    repo.query.mockResolvedValue([{ total: '2' }]);
+    await expect(service.update(1, { tipo: TipoObra.Livro })).rejects.toBeInstanceOf(ConflictException);
+    expect(repo.save).not.toHaveBeenCalled();
   });
 
   it('findById: 404 quando nao existe', async () => {
@@ -108,12 +129,16 @@ describe('ObrasService', () => {
       tipo: 'livro',
       volume: null,
       capaUrl: '/files/covers/nova.jpg',
+      capaThumbUrl: '/files/covers/nova.thumb.webp',
+      capaMediaUrl: '/files/covers/nova.medium.webp',
     });
     expect(cache.invalidatePrefix).toHaveBeenCalledWith('catalog:obras:');
     expect(store.has('catalog:obras:id:1')).toBe(false);
     expect(store.has('catalog:capitulos:paginas:1')).toBe(true);
     expect(events.obraAtualizada).toHaveBeenCalledWith(expect.objectContaining({ id: 1, preco: 49.9 }));
     expect(storage.removeFile).toHaveBeenCalledWith('covers/antiga.jpg');
+    expect(storage.removeFile).toHaveBeenCalledWith('covers/antiga.thumb.webp');
+    expect(storage.removeFile).toHaveBeenCalledWith('covers/antiga.medium.webp');
   });
 
   it('update: regra de dominio violada vira 400 sem gravar nada', async () => {
@@ -131,6 +156,8 @@ describe('ObrasService', () => {
       'db fora',
     );
     expect(storage.removeFile).toHaveBeenCalledWith('covers/nova.jpg');
+    expect(storage.removeFile).toHaveBeenCalledWith('covers/nova.thumb.webp');
+    expect(storage.removeFile).toHaveBeenCalledWith('covers/nova.medium.webp');
     expect(events.obraAtualizada).not.toHaveBeenCalled();
     expect(cache.invalidatePrefix).not.toHaveBeenCalled();
   });
@@ -142,6 +169,8 @@ describe('ObrasService', () => {
       expect.objectContaining({ nome: 'Re:Zero', avaliacao: 5, capaPath: null, volume: 2 }),
     );
     expect(res.capaUrl).toBeNull();
+    expect(res.capaThumbUrl).toBeNull();
+    expect(res.capaMediaUrl).toBeNull();
     expect(cache.invalidatePrefix).toHaveBeenCalledWith('catalog:obras:');
     expect(events.obraAtualizada).toHaveBeenCalled();
   });
@@ -151,8 +180,9 @@ describe('ObrasService', () => {
     repo.findOneBy.mockResolvedValue(obraFake());
     repo.save.mockRejectedValueOnce(new Error('db fora'));
     await expect(service.update(1, {}, arquivo)).rejects.toThrow('db fora');
-    expect(storage.removeFile).toHaveBeenCalledTimes(1);
+    expect(storage.removeFile).toHaveBeenCalledTimes(3);
     expect(storage.removeFile).toHaveBeenCalledWith('covers/nova.jpg');
+    expect(storage.removeFile).not.toHaveBeenCalledWith('covers/antiga.jpg');
   });
 
   it('remove: apaga linha, capa e pasta de paginas, invalida e publica catalog.obra.deleted', async () => {
@@ -161,6 +191,8 @@ describe('ObrasService', () => {
     await service.remove(7);
     expect(repo.delete).toHaveBeenCalledWith({ id: 7 });
     expect(storage.removeFile).toHaveBeenCalledWith('covers/antiga.jpg');
+    expect(storage.removeFile).toHaveBeenCalledWith('covers/antiga.thumb.webp');
+    expect(storage.removeFile).toHaveBeenCalledWith('covers/antiga.medium.webp');
     expect(storage.removeDir).toHaveBeenCalledWith('pages/obra_7');
     expect(cache.invalidatePrefix).toHaveBeenCalledWith('catalog:obras:');
     expect(events.obraExcluida).toHaveBeenCalledWith({ id: 7, tipo: TipoObra.Manga });
@@ -172,6 +204,94 @@ describe('ObrasService', () => {
     repo.findBy.mockResolvedValue([obraFake({ id: 1 }), obraFake({ id: 2 })]);
     const res = await service.findLote('2,1,999');
     expect(res.map((o) => o.id)).toEqual([2, 1]);
+  });
+
+  it('totalCapitulos: um unico COUNT agrupado para o lote (sem N+1), 0 quando nao ha capitulos', async () => {
+    const { service, repo } = setup();
+    repo.findBy.mockResolvedValue([obraFake({ id: 1 }), obraFake({ id: 2 }), obraFake({ id: 3 })]);
+    repo.query.mockResolvedValueOnce([
+      { obraId: 1, total: '4' },
+      { obraId: '3', total: 2 },
+    ]);
+    const res = await service.findLote('1,2,3');
+    expect(res.map((o) => [o.id, o.totalCapitulos])).toEqual([
+      [1, 4],
+      [2, 0],
+      [3, 2],
+    ]);
+    expect(repo.query).toHaveBeenCalledTimes(1);
+    expect(repo.query.mock.calls[0][0]).toContain('GROUP BY obra_id');
+    expect(repo.query.mock.calls[0][1]).toEqual([[1, 2, 3]]);
+  });
+
+  it('create/update: normaliza generos (dedup, caixa) e PATCH sem generos mantem a lista', async () => {
+    const { service, repo } = setup();
+    await service.create({ tipo: TipoObra.Manga, nome: 'X', preco: 10, generos: ['acao', 'Ação', 'isekai'] });
+    expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({ generos: ['Acao', 'Isekai'] }));
+    await expect(
+      service.create({ tipo: TipoObra.Manga, nome: 'X', preco: 10, generos: ['<b>'] }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    repo.findOneBy.mockResolvedValue(obraFake());
+    const mantida = await service.update(1, { nome: 'Novo' });
+    expect(mantida.generos).toEqual(['Ação', 'Fantasia']);
+    repo.findOneBy.mockResolvedValue(obraFake());
+    const limpa = await service.update(1, { generos: [] });
+    expect(limpa.generos).toEqual([]);
+  });
+
+  it('list: filtro por genero usa LIKE no JSON e entra na chave de cache', async () => {
+    const { service, repo } = setup();
+    const qb = {
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getManyAndCount: jest.fn().mockResolvedValue([[obraFake()], 1]),
+    };
+    repo.createQueryBuilder.mockReturnValue(qb);
+    const a = await service.list({ page: 1, limit: 10, genero: ' fantasia ' });
+    expect(qb.andWhere).toHaveBeenCalledWith('o.generos LIKE :genero', { genero: '%"Fantasia"%' });
+    expect(a.hit).toBe(false);
+    expect((await service.list({ page: 1, limit: 10, genero: 'Fantasia' })).hit).toBe(true);
+    expect((await service.list({ page: 1, limit: 10 })).hit).toBe(false);
+  });
+
+  it('listarGeneros: conta obras por genero com cache catalog:obras:generos', async () => {
+    const { service, repo, cache } = setup();
+    repo.find.mockResolvedValue([{ generos: ['Ação', 'Drama'] }, { generos: ['acao'] }, { generos: null }]);
+    const r1 = await service.listarGeneros();
+    expect(r1).toEqual({
+      hit: false,
+      value: [
+        { genero: 'Ação', total: 2 },
+        { genero: 'Drama', total: 1 },
+      ],
+    });
+    expect((await service.listarGeneros()).hit).toBe(true);
+    expect(cache.getOrSet).toHaveBeenCalledWith('catalog:obras:generos', 60, expect.any(Function));
+  });
+
+  it('findRelacionadas: rankeia por genero/tipo, 404 se a obra nao existe e e invalidada com o prefixo', async () => {
+    const { service, repo, cache } = setup();
+    repo.findOneBy.mockResolvedValue(null);
+    await expect(service.findRelacionadas(99, 6)).rejects.toBeInstanceOf(NotFoundException);
+
+    repo.findOneBy.mockResolvedValue(obraFake({ id: 1 }));
+    repo.find.mockResolvedValue([
+      obraFake({ id: 1 }),
+      obraFake({ id: 2, tipo: TipoObra.Livro, generos: ['Drama'] }),
+      obraFake({ id: 3, tipo: TipoObra.Novel, generos: ['Fantasia'] }),
+      obraFake({ id: 4, generos: [] }),
+    ]);
+    const res = await service.findRelacionadas(1, 6);
+    expect(res.hit).toBe(false);
+    expect(res.value.map((o) => o.id)).toEqual([3, 4]);
+    expect((await service.findRelacionadas(1, 6)).hit).toBe(true);
+    await service.invalidarObras();
+    expect(cache.invalidatePrefix).toHaveBeenCalledWith('catalog:obras:');
+    expect((await service.findRelacionadas(1, 6)).hit).toBe(false);
   });
 
   it('escapeLike escapa curingas', () => {

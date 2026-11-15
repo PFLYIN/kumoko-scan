@@ -40,3 +40,9 @@ Kumoko_Scan-Back/uploads/
 !.vscode/settings.json
 .DS_Store
 Thumbs.db
+
+# ---------- E2E (Playwright) ----------
+frontend/playwright-report/
+frontend/test-results/
+frontend/e2e/.auth/
+frontend/.audit/

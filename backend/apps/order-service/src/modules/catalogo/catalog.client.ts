@@ -4,11 +4,12 @@ import {
   Injectable,
   Logger,
   type OnModuleDestroy,
+  Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CacheService } from '@kumoko/cache';
-import { getRequestId, REQUEST_ID_HEADER } from '@kumoko/observability';
+import { getRequestId, MetricsService, REQUEST_ID_HEADER } from '@kumoko/observability';
 import type { AxiosInstance } from 'axios';
 import CircuitBreaker from 'opossum';
 import {
@@ -57,6 +58,7 @@ export class CatalogClient implements OnModuleDestroy {
     private readonly cache: CacheService,
     config: ConfigService,
     @Inject(CATALOG_SLEEP) private readonly sleep: Sleep,
+    @Optional() private readonly metrics?: MetricsService,
   ) {
     this.retries = Number(config.get('CATALOG_RETRIES') ?? 2);
     const timeoutMs = Number(config.get('CATALOG_TIMEOUT_MS') ?? 2000);
@@ -69,15 +71,29 @@ export class CatalogClient implements OnModuleDestroy {
       // 4xx e erro do chamador, nao do catalogo: nao conta como falha.
       errorFilter: (error: unknown) => isClientError(error),
     });
-    this.breaker.on('open', () => this.logger.warn(`Circuit breaker OPEN servico=${CATALOG_SERVICE_NAME}`));
-    this.breaker.on('halfOpen', () =>
-      this.logger.log(`Circuit breaker HALF_OPEN servico=${CATALOG_SERVICE_NAME} (testando o catalogo)`),
-    );
-    this.breaker.on('close', () => this.logger.log(`Circuit breaker CLOSED servico=${CATALOG_SERVICE_NAME}`));
+    this.breaker.on('open', () => {
+      this.logger.warn(`Circuit breaker OPEN servico=${CATALOG_SERVICE_NAME}`);
+      this.publicarEstadoCircuito();
+    });
+    this.breaker.on('halfOpen', () => {
+      this.logger.log(`Circuit breaker HALF_OPEN servico=${CATALOG_SERVICE_NAME} (testando o catalogo)`);
+      this.publicarEstadoCircuito();
+    });
+    this.breaker.on('close', () => {
+      this.logger.log(`Circuit breaker CLOSED servico=${CATALOG_SERVICE_NAME}`);
+      this.publicarEstadoCircuito();
+    });
+    // Serie existe desde o boot (0 = fechado), para o painel e o alerta terem dado.
+    this.publicarEstadoCircuito();
   }
 
   onModuleDestroy(): void {
     this.breaker.shutdown();
+  }
+
+  /** Atualiza o gauge circuit_breaker_state{target="catalog-service"}. */
+  private publicarEstadoCircuito(): void {
+    this.metrics?.setCircuitBreakerState(CATALOG_SERVICE_NAME, this.estadoCircuito);
   }
 
   get estadoCircuito(): EstadoCircuito {

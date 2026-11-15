@@ -23,7 +23,8 @@ export class PedidoConcluidoListener implements OnModuleInit {
 
   onModuleInit(): void {
     this.eventBus.subscribe<OrderCompletedPayload>(EventTypes.OrderCompleted, async (payload, envelope) => {
-      await this.handle(payload, envelope);
+      // 'duplicado' e repassado ao EventBus para a metrica events_consumed_total{outcome="duplicate"}.
+      return this.handle(payload, envelope);
     });
   }
 

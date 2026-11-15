@@ -11,16 +11,21 @@ import type { Repository } from 'typeorm';
 import { CatalogSettings } from '../../../config/catalog-settings';
 import { CatalogCacheKeys } from '../../../shared/cache/catalog-cache-keys';
 import { isDuplicateEntryError } from '../../../shared/database/database-errors';
+import { ImageProcessorService } from '../../../shared/images/image-processor.service';
 import { FileStorageService } from '../../../shared/storage/file-storage.service';
 import { StoragePaths } from '../../../shared/storage/storage-paths';
 import { Capitulo } from '../../capitulos/entities/capitulo.entity';
 import { CAPITULO_NAO_ENCONTRADO } from '../../capitulos/services/capitulos.service';
-import type { CreatePaginaDto, PaginaResponseDto } from '../dto/pagina.dto';
+import type { CreatePaginaDto, PaginaResponseDto, ReordenarPaginasDto } from '../dto/pagina.dto';
 import { Pagina } from '../entities/pagina.entity';
 import { toPaginaResponse } from '../mappers/pagina.mapper';
 
 export const PAGINA_NAO_ENCONTRADA = 'Página não encontrada.';
 export const PAGINA_DUPLICADA = 'Já existe uma página com este número neste capítulo.';
+export const ORDEM_INVALIDA =
+  'paginaIds deve conter exatamente todas as páginas do capítulo, sem repetições.';
+/** Deslocamento temporario para nao colidir com UNIQUE(capitulo_id, numero) durante a renumeracao. */
+export const REORDENAR_OFFSET = 1_000_000;
 export const IMAGEM_OBRIGATORIA = 'Envie a imagem da página no campo "imagem".';
 
 @Injectable()
@@ -33,6 +38,7 @@ export class PaginasService {
     private readonly cache: CacheService,
     private readonly storage: FileStorageService,
     private readonly settings: CatalogSettings,
+    private readonly images: ImageProcessorService,
   ) {}
 
   async listByCapitulo(capituloId: number): Promise<CacheResult<PaginaResponseDto[]>> {
@@ -64,17 +70,61 @@ export class PaginasService {
       StoragePaths.capituloPagesDir(capitulo.obraId, capituloId),
       imagem.buffer,
     );
+    const imagemOtimizadaPath = await this.images.gerarVersaoLeitura(imagemPath);
     let pagina: Pagina;
     try {
-      pagina = await this.paginas.save(this.paginas.create({ capituloId, numero, imagemPath }));
+      pagina = await this.paginas.save(
+        this.paginas.create({ capituloId, numero, imagemPath, imagemOtimizadaPath }),
+      );
     } catch (error) {
-      // Compensacao: o arquivo ja foi gravado, mas a linha nao.
+      // Compensacao: os arquivos ja foram gravados, mas a linha nao.
       await this.storage.removeFile(imagemPath);
+      await this.storage.removeFile(imagemOtimizadaPath);
       throw isDuplicateEntryError(error) ? new ConflictException(PAGINA_DUPLICADA) : error;
     }
     this.logger.log(`Pagina criada paginaId=${pagina.id} capituloId=${capituloId} numero=${numero}`);
     await this.invalidar(capitulo);
     return toPaginaResponse(pagina);
+  }
+
+  /**
+   * Reordena as paginas do capitulo: numero = posicao (1..N) em paginaIds.
+   * Em uma transacao, primeiro desloca todas para numero + OFFSET e depois grava 1..N,
+   * evitando colisao com o UNIQUE(capitulo_id, numero).
+   */
+  async reordenar(capituloId: number, dto: ReordenarPaginasDto): Promise<PaginaResponseDto[]> {
+    const capitulo = await this.getCapitulo(capituloId);
+    const ids = dto.paginaIds;
+    const resultado = await this.paginas.manager.transaction(async (em) => {
+      const repo = em.getRepository(Pagina);
+      const atuais = await repo.find({
+        where: { capituloId },
+        order: { numero: 'ASC' },
+        lock: { mode: 'pessimistic_write' },
+      });
+      const existentes = new Set(atuais.map((p) => p.id));
+      const unicos = new Set(ids);
+      if (unicos.size !== ids.length || ids.length !== atuais.length || ids.some((id) => !existentes.has(id))) {
+        throw new BadRequestException(ORDEM_INVALIDA);
+      }
+      await repo
+        .createQueryBuilder()
+        .update(Pagina)
+        .set({ numero: () => `numero + ${REORDENAR_OFFSET}` })
+        .where('capitulo_id = :capituloId', { capituloId })
+        .execute();
+      for (const [indice, id] of ids.entries()) {
+        await repo.update({ id }, { numero: indice + 1 });
+      }
+      const porId = new Map(atuais.map((p) => [p.id, p]));
+      return ids.flatMap((id, indice) => {
+        const pagina = porId.get(id);
+        return pagina ? [{ ...pagina, numero: indice + 1 }] : [];
+      });
+    });
+    this.logger.log(`Paginas reordenadas capituloId=${capituloId} total=${ids.length}`);
+    await this.invalidar(capitulo);
+    return resultado.map(toPaginaResponse);
   }
 
   async remove(id: number): Promise<void> {
@@ -85,6 +135,7 @@ export class PaginasService {
     const capitulo = await this.capitulos.findOneBy({ id: pagina.capituloId });
     await this.paginas.delete({ id });
     await this.storage.removeFile(pagina.imagemPath);
+    await this.storage.removeFile(pagina.imagemOtimizadaPath);
     this.logger.log(`Pagina excluida paginaId=${id} capituloId=${pagina.capituloId}`);
     if (capitulo) {
       await this.invalidar(capitulo);

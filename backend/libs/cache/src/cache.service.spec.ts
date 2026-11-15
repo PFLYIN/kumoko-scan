@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { MetricsService } from '@kumoko/observability';
 import type { Redis } from 'ioredis';
 import { CacheService } from './cache.service';
 
@@ -134,6 +135,41 @@ describe('CacheService', () => {
       redis.scan.mockRejectedValue(new Error('down'));
       await expect(service.invalidatePrefix('catalog:')).resolves.toBe(0);
       expect(warnSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('metricas', () => {
+    let metrics: MetricsService;
+    let withMetrics: CacheService;
+
+    beforeEach(() => {
+      metrics = new MetricsService({ serviceName: 'catalog-service' });
+      withMetrics = new CacheService(redis as unknown as Redis, metrics);
+    });
+
+    const valor = async (result: string) =>
+      (await metrics.cacheOperations.get()).values.find((v) => v.labels.result === result)?.value ?? 0;
+
+    it('conta hit e miss em getOrSet', async () => {
+      redis.get.mockResolvedValueOnce(null).mockResolvedValueOnce(JSON.stringify({ id: 1 }));
+      await withMetrics.getOrSet('k', 60, async () => ({ id: 1 }));
+      await withMetrics.getOrSet('k', 60, async () => ({ id: 1 }));
+      expect(await valor('miss')).toBe(1);
+      expect(await valor('hit')).toBe(1);
+    });
+
+    it('Redis fora conta como miss', async () => {
+      redis.get.mockRejectedValue(new Error('down'));
+      await withMetrics.get('k');
+      expect(await valor('miss')).toBe(1);
+    });
+
+    it('conta invalidacoes por chave e por prefixo', async () => {
+      redis.scan.mockResolvedValue(['0', ['a']]);
+      redis.unlink.mockResolvedValue(1);
+      await withMetrics.invalidate('k');
+      await withMetrics.invalidatePrefix('catalog:');
+      expect(await valor('invalidate')).toBe(2);
     });
   });
 });

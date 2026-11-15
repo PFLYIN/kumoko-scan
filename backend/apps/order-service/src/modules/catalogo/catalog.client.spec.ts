@@ -1,6 +1,7 @@
 import { BadGatewayException, ServiceUnavailableException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { CacheService } from '@kumoko/cache';
+import { MetricsService } from '@kumoko/observability';
 import { AxiosError, type AxiosInstance, type AxiosResponse } from 'axios';
 import { CatalogClient } from './catalog.client';
 import { calcularBackoffMs, classificarFalha } from './retry-policy';
@@ -93,6 +94,23 @@ describe('CatalogClient', () => {
     get.mockClear();
     await expect(client.buscarObras([2])).rejects.toThrow('Catálogo indisponível no momento');
     expect(get).not.toHaveBeenCalled();
+  });
+
+  it('publica o estado do circuito no gauge circuit_breaker_state', async () => {
+    const metrics = new MetricsService({ serviceName: 'order-service' });
+    const config = {
+      get: (key: string) => ({ CATALOG_RETRIES: 2, CATALOG_TIMEOUT_MS: 200 })[key],
+    } as unknown as ConfigService;
+    const comMetricas = new CatalogClient({ get } as unknown as AxiosInstance, cache, config, sleep, metrics);
+    const estado = async () => (await metrics.circuitBreakerState.get()).values[0];
+    try {
+      expect(await estado()).toMatchObject({ value: 0, labels: { target: 'catalog-service' } });
+      get.mockRejectedValue(httpError(503));
+      await expect(comMetricas.buscarObras([1])).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(await estado()).toMatchObject({ value: 2 });
+    } finally {
+      comMetricas.onModuleDestroy();
+    }
   });
 
   it('resposta fora do contrato vira 502 sem retry', async () => {

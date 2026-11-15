@@ -1,7 +1,8 @@
-import { Navigate, createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout.jsx';
 import ProtectedRoute from '../components/routing/ProtectedRoute.jsx';
 import AdminRoute from '../components/routing/AdminRoute.jsx';
+import AdminLayout from '../components/admin/AdminLayout.jsx';
 import RouteError from '../components/routing/RouteError.jsx';
 import LoadingState from '../components/ui/LoadingState.jsx';
 import HomePage from '../pages/Home/HomePage.jsx';
@@ -36,6 +37,8 @@ export const router = createBrowserRouter([
         element: <ProtectedRoute />,
         children: [
           { path: 'pedidos', lazy: lazyPage(() => import('../pages/Pedidos/PedidosPage.jsx')) },
+          { path: 'pedidos/:id/sucesso', lazy: lazyPage(() => import('../pages/Pedidos/PedidoSucessoPage.jsx')) },
+          { path: 'pedidos/:id', lazy: lazyPage(() => import('../pages/Pedidos/PedidoDetalhePage.jsx')) },
           { path: 'perfil', lazy: lazyPage(() => import('../pages/Perfil/PerfilPage.jsx')) },
         ],
       },
@@ -43,13 +46,20 @@ export const router = createBrowserRouter([
         path: 'admin',
         element: <AdminRoute />,
         children: [
-          { index: true, element: <Navigate to="acervo" replace /> },
+          {
+            element: <AdminLayout />,
+            children: [
+          { index: true, lazy: lazyPage(() => import('../pages/admin/Painel/PainelPage.jsx')) },
+          { path: 'pedidos', lazy: lazyPage(() => import('../pages/admin/Pedidos/PedidosAdminPage.jsx')) },
+          { path: 'usuarios', lazy: lazyPage(() => import('../pages/admin/Usuarios/UsuariosAdminPage.jsx')) },
           { path: 'acervo', lazy: lazyPage(() => import('../pages/admin/Acervo/AcervoPage.jsx')) },
           { path: 'obras/nova', lazy: lazyPage(() => import('../pages/admin/ObraForm/ObraFormPage.jsx')) },
           { path: 'obras/:id/editar', lazy: lazyPage(() => import('../pages/admin/ObraForm/ObraFormPage.jsx')) },
           {
             path: 'obras/:id/capitulos',
             lazy: lazyPage(() => import('../pages/admin/CapitulosAdmin/CapitulosAdminPage.jsx')),
+          },
+            ],
           },
         ],
       },

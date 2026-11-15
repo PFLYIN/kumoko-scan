@@ -8,7 +8,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { setCacheHeader } from '@kumoko/cache';
-import { AUTH_COOKIE_NAME, Public, Roles } from '@kumoko/security';
+import { AUTH_COOKIE_NAME, Public, PUBLIC_READ_THROTTLE, Roles, Throttle } from '@kumoko/security';
 import type { Response } from 'express';
 import { ErrorResponseDto } from '../../../shared/dto/error-response.dto';
 import { ParseIdPipe } from '../../../shared/http/parse-id.pipe';
@@ -21,6 +21,7 @@ export class CapitulosController {
   constructor(private readonly capitulos: CapitulosService) {}
 
   @Public()
+  @Throttle(PUBLIC_READ_THROTTLE)
   @Get('obras/:id/capitulos')
   @ApiOperation({ summary: 'Lista os capitulos de uma obra, ordenados por numero (cache)' })
   @ApiOkResponse({

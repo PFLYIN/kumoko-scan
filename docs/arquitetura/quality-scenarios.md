@@ -22,6 +22,7 @@ nas evidências de cada entrega. Os SLOs derivados estão em
 | QS-10 | Implantabilidade | Subir o ambiente do zero | `docker compose up -d --build --wait` saudável em < 5 min |
 | QS-11 | Modificabilidade | Adicionar um novo tipo de obra | Mudança restrita ao catalog-service + 1 migration |
 | QS-12 | Recuperabilidade | Container de serviço morre | Reiniciado automaticamente e saudável em < 60 s |
+| QS-13 | Desempenho (front) | Abrir `/catalogo` em notebook/monitor | Capas da 1ª página (limit=24) < 2 MB no total |
 
 ## Cenários detalhados
 
@@ -36,6 +37,28 @@ nas evidências de cada entrega. Os SLOs derivados estão em
 | Resposta | Resposta servida do Redis, header `X-Cache: HIT`, sem consulta ao MariaDB |
 | Medida | p95 de `http_request_duration_seconds{service="catalog-service",route=~".*/obras"}` < 100 ms; < 250 ms com cache frio |
 | Como verificar | `scripts/demo-cache.sh` (MISS → HIT) e histograma em `/metrics` |
+
+### QS-13 — Peso das imagens do catálogo
+
+| Parte | Descrição |
+|---|---|
+| Fonte | Leitor em notebook/monitor (1366–1920 px; até 6 cards por linha) |
+| Estímulo | Abre `/catalogo` (1ª página, `limit=24`) |
+| Artefato | catalog-service (`ImageProcessorService`, sharp) + gateway `/files/` + frontend |
+| Ambiente | Operação normal, catálogo do seed (20 capas JPG de 0,9–2,7 MB) |
+| Resposta | Cards usam `capaThumbUrl` (WebP 360 px, q80, sem EXIF); detalhe usa `capaMediaUrl` (720 px); leitor usa `imagemOtimizadaUrl` (≤ 1200 px). Variantes geradas no upload, no seed e por backfill idempotente no boot |
+| Medida | Soma das capas da 1ª página < 2 MB (antes: ~20 MB) |
+| Como verificar | `curl -sk https://localhost:8443/api/obras?limit=24` e somar `size_download` de cada `capaThumbUrl` |
+
+Medição real (2026-11-15, stack local, 20 obras com capa na 1ª página):
+
+| Variante | Bytes totais | Média por capa | Redução |
+|---|---|---|---|
+| Original JPG (`capaUrl`, antes) | 20.895.208 (~19,9 MiB) | ~1,04 MB | — |
+| `capaThumbUrl` WebP 360 px (cards, depois) | 878.970 (~0,84 MiB) | ~44 KB | **−95,8 %** (23,8× menor) |
+| `capaMediaUrl` WebP 720 px (detalhe) | 2.268.988 (~2,2 MiB) | ~113 KB | −89,1 % |
+
+Respostas `/files/*.webp` saem com `Content-Type: image/webp`, `Cache-Control: max-age=604800` e `X-Content-Type-Options: nosniff`.
 
 ### QS-02 — Disponibilidade com Redis indisponível
 

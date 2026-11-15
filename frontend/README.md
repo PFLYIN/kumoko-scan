@@ -84,3 +84,7 @@ auth-service rodar com `COOKIE_SECURE=true` e você acessar o Vite por IP da red
 `Dockerfile` multi-stage: `node:22-alpine` (npm ci + build) e `nginx:1.27-alpine` servindo `dist/`
 com fallback de SPA, cache imutável em `/assets/`, gzip e `GET /healthz` para o healthcheck.
 O container escuta na porta 80 e fica atrás do gateway (não publica portas no host).
+
+## Testes E2E (Playwright)
+
+Com a stack no ar: `npm run test:e2e` (Chrome instalado; no CI `E2E_BROWSER_CHANNEL=chromium`). Detalhes, cobertura e variáveis em [`docs/qualidade/auditoria-funcional.md`](../docs/qualidade/auditoria-funcional.md).

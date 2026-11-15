@@ -115,6 +115,7 @@ jobs:
           set_secret REDIS_PASSWORD "$(openssl rand -hex 24)"
           set_secret JWT_SECRET "$(openssl rand -hex 32)"
           set_secret ADMIN_PASSWORD "Ci-$(openssl rand -hex 12)a1"
+          set_secret GRAFANA_ADMIN_PASSWORD "$(openssl rand -hex 24)"
           docker compose config -q
 
       - name: Sobe a stack e aguarda os healthchecks
@@ -122,6 +123,46 @@ jobs:
 
       - name: Smoke test pelo gateway
         run: bash scripts/smoke-test.sh
+
+      # Observabilidade: Grafana responde pelo gateway e o Prometheus coleta os 3 servicos.
+      - name: Verifica Prometheus e Grafana
+        run: |
+          curl -fsk https://localhost:8443/grafana/api/health
+          docker compose exec -T prometheus wget -qO- http://127.0.0.1:9090/api/v1/targets > targets.json
+          up=$(grep -o '"health":"up"' targets.json | wc -l)
+          echo "targets UP: $up"
+          test "$up" -ge 4
+
+      # E2E (Playwright) pela borda HTTPS: visitante, cliente e admin nos 3 tipos de obra.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instala dependencias e Chromium do Playwright
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Testes E2E (Playwright)
+        working-directory: frontend
+        env:
+          E2E_BASE_URL: https://localhost:8443
+          E2E_BROWSER_CHANNEL: chromium
+        run: npm run test:e2e
+
+      - name: Publica relatorio e traces do Playwright (em falha)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Estado e logs dos containers (em falha)
         if: failure()

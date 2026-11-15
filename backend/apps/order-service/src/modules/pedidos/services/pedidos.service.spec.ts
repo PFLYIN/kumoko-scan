@@ -49,6 +49,7 @@ describe('PedidosService', () => {
       buscarPorId: jest.fn(),
       buscarPorIdempotencyKey: jest.fn().mockResolvedValue(null),
       listarPorUsuario: jest.fn(),
+      listarTodos: jest.fn(),
     };
     catalog = {
       buscarObras: jest.fn().mockResolvedValue(

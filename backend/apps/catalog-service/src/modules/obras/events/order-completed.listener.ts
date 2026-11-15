@@ -37,9 +37,10 @@ export class OrderCompletedListener implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    this.eventBus.subscribe<OrderCompletedPayload>(EventTypes.OrderCompleted, async (payload, envelope) => {
-      await this.handle(payload, envelope);
-    });
+    // Repassa o resultado ao EventBus: false (duplicado) conta como "duplicate" nas metricas.
+    this.eventBus.subscribe<OrderCompletedPayload>(EventTypes.OrderCompleted, (payload, envelope) =>
+      this.handle(payload, envelope),
+    );
   }
 
   /** Retorna true se aplicou o evento, false se ja havia sido processado. */

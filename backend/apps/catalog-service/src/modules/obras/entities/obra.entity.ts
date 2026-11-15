@@ -22,6 +22,10 @@ export class Obra {
   @Column({ type: 'text', nullable: true })
   descricao: string | null;
 
+  /** Generos/tags (JSON no banco). Ver domain/generos.ts. */
+  @Column({ type: 'simple-json' })
+  generos: string[];
+
   @Column({ type: 'int', nullable: true })
   volume: number | null;
 
@@ -33,6 +37,14 @@ export class Obra {
 
   @Column({ name: 'capa_path', type: 'varchar', length: 512, nullable: true })
   capaPath: string | null;
+
+  /** Variante WebP 360px (cards). NULL ate ser gerada (upload, seed ou backfill). */
+  @Column({ name: 'capa_thumb_path', type: 'varchar', length: 512, nullable: true })
+  capaThumbPath: string | null;
+
+  /** Variante WebP 720px (detalhe/admin). */
+  @Column({ name: 'capa_media_path', type: 'varchar', length: 512, nullable: true })
+  capaMediaPath: string | null;
 
   @Column({ name: 'total_vendido', type: 'int', default: 0 })
   totalVendido: number;

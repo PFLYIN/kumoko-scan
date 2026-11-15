@@ -226,6 +226,32 @@ que o de Vendas). Conceitualmente:
 | `CaminhoArquivo` | Value Object | Caminho relativo seguro (`covers/<uuid>.jpg`, `pages/obra_<id>/capitulo_<id>/<uuid>.jpg`) convertido em URL pública `/files/...`. |
 | `TotalVendido` | Atributo derivado | Atualizado apenas pelo evento `order.completed` (idempotente via `eventos_processados`). |
 
+### 6.1 Regras por tipo de obra (decisão de 2026-11, auditoria funcional)
+
+O tipo da obra muda o que o produto oferece. A regra vale no backend (fonte da verdade)
+e o frontend só reflete:
+
+| Tipo | Volume | Capítulos e leitor online | Venda |
+|---|---|---|---|
+| **Mangá** | opcional, inteiro 1..9999 | sim (páginas em imagem, leitor vertical) | sim |
+| **Light novel** | opcional, inteiro 1..9999 | sim (páginas em imagem: scans/ilustrações) | sim |
+| **Livro** | não tem (sempre `null`) | **não**: é vendido como edição completa | sim |
+
+- `tipoAceitaVolume(tipo)` e `tipoAceitaCapitulos(tipo)` ficam em `obras/domain/tipo-obra.ts`.
+- `POST /api/obras/:id/capitulos` numa obra do tipo livro responde **422**
+  ("Livros não têm capítulos para leitura online...").
+- `PATCH /api/obras/:id` que muda para livro uma obra com capítulos responde **409**
+  ("Exclua os capítulos antes de mudar o tipo para livro."): a troca não apaga conteúdo
+  silenciosamente. Mudar para livro também zera o volume (regra que já existia).
+- Frontend: a página do livro não mostra a seção "Capítulos" (exibe "edição completa"),
+  o admin não vê "Gerenciar capítulos" nem o atalho de capítulos no acervo, e
+  `/admin/obras/:id/capitulos` de um livro explica a regra em vez de abrir o formulário.
+
+Por que não "livro com capítulos": o produto vende livros físicos/edições fechadas; manter
+um leitor vazio para livros era só aparência (a seção aparecia sempre como "nenhum
+capítulo"). Se no futuro houver amostra de leitura de livros, ela deve ser um conceito
+próprio (ex.: *Trecho*), não capítulos.
+
 ## 7. Modelo tático — Identidade e Acesso (resumo)
 
 - Aggregate `Usuario` (raiz) com Value Objects `Email` (normalizado em minúsculas),

@@ -7,18 +7,23 @@ function toIso(value: Date | string): string {
 }
 
 /** Entity -> resposta publica (sem caminhos internos de disco). */
-export function toObraResponse(obra: Obra): ObraResponseDto {
+export function toObraResponse(obra: Obra, totalCapitulos = 0): ObraResponseDto {
   return {
     id: obra.id,
     tipo: obra.tipo,
     nome: obra.nome,
     autor: obra.autor,
     descricao: obra.descricao,
+    generos: Array.isArray(obra.generos) ? obra.generos : [],
     volume: obra.volume,
     preco: Number(obra.preco),
     avaliacao: Number(obra.avaliacao),
     capaUrl: toPublicFileUrl(obra.capaPath),
+    // Variantes caem para o original quando ainda nao existem.
+    capaThumbUrl: toPublicFileUrl(obra.capaThumbPath ?? obra.capaPath),
+    capaMediaUrl: toPublicFileUrl(obra.capaMediaPath ?? obra.capaPath),
     totalVendido: Number(obra.totalVendido ?? 0),
+    totalCapitulos,
     criadoEm: toIso(obra.criadoEm),
     atualizadoEm: toIso(obra.atualizadoEm),
   };

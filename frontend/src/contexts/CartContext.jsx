@@ -27,6 +27,7 @@ function sanitize(raw) {
         tipo: i.snapshot?.tipo ?? null,
         capaUrl: i.snapshot?.capaUrl ?? null,
         preco: Number(i.snapshot?.preco) || 0,
+        indisponivel: i.snapshot?.indisponivel === true,
       },
     }));
 }
@@ -40,7 +41,7 @@ function readStorage() {
 }
 
 function toSnapshot(obra) {
-  return { nome: obra.nome, tipo: obra.tipo, capaUrl: obra.capaUrl ?? null, preco: Number(obra.preco) || 0 };
+  return { nome: obra.nome, tipo: obra.tipo, capaUrl: obra.capaThumbUrl ?? obra.capaUrl ?? null, preco: Number(obra.preco) || 0 };
 }
 
 export function CartProvider({ children }) {
@@ -97,12 +98,19 @@ export function CartProvider({ children }) {
   // Atualiza os snapshots com dados frescos do catalogo (precos/nomes podem ter mudado).
   const refreshSnapshots = useCallback((obras) => {
     const porId = new Map(obras.map((o) => [o.id, o]));
-    setItems((prev) => prev.map((i) => (porId.has(i.obraId) ? { ...i, snapshot: toSnapshot(porId.get(i.obraId)) } : i)));
+    // Obras que sumiram do catalogo ficam marcadas como indisponiveis (o pedido seria recusado com 422).
+    setItems((prev) =>
+      prev.map((i) =>
+        porId.has(i.obraId)
+          ? { ...i, snapshot: toSnapshot(porId.get(i.obraId)) }
+          : { ...i, snapshot: { ...i.snapshot, indisponivel: true } },
+      ),
+    );
   }, []);
 
   const value = useMemo(() => {
     const totalItens = items.reduce((acc, i) => acc + i.quantidade, 0);
-    const totalEstimado = items.reduce((acc, i) => acc + i.quantidade * i.snapshot.preco, 0);
+    const totalEstimado = items.reduce((acc, i) => acc + (i.snapshot.indisponivel ? 0 : i.quantidade * i.snapshot.preco), 0);
     return { items, totalItens, totalEstimado, addItem, setQuantidade, removeItem, clear, refreshSnapshots };
   }, [items, addItem, setQuantidade, removeItem, clear, refreshSnapshots]);
 

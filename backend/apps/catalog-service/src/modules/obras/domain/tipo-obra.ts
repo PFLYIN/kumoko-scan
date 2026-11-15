@@ -18,3 +18,11 @@ export function toTipoObraContrato(tipo: TipoObra): TipoObraContrato {
 export function tipoAceitaVolume(tipo: TipoObra): boolean {
   return tipo === TipoObra.Manga || tipo === TipoObra.Novel;
 }
+
+/**
+ * Somente mangas e light novels tem capitulos para leitura online.
+ * Livros sao vendidos como produto fechado (sem leitor de capitulos).
+ */
+export function tipoAceitaCapitulos(tipo: TipoObra): boolean {
+  return tipo === TipoObra.Manga || tipo === TipoObra.Novel;
+}

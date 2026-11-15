@@ -1,0 +1,41 @@
+# Regras de alerta (avaliadas pelo Prometheus e visiveis no Grafana; sem Alertmanager).
+# Limiares alinhados a docs/operacao/slo-sli.md.
+groups:
+  - name: kumoko-disponibilidade
+    rules:
+      - alert: ServicoFora
+        expr: up{job="kumoko-services"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.app }} nao responde ao scrape de /metrics"
+          description: "O alvo {{ $labels.instance }} esta DOWN ha mais de 30s."
+
+      - alert: TaxaDeErroAcimaDoSLO
+        # SLO-1: 99,5% => no maximo 0,5% de 5xx. Exige trafego minimo para evitar falso positivo.
+        expr: |
+          (
+            sum by (service) (rate(http_request_duration_seconds_count{status_code=~"5.."}[5m]))
+            /
+            sum by (service) (rate(http_request_duration_seconds_count[5m]))
+          ) > 0.005
+          and on (service)
+          sum by (service) (rate(http_request_duration_seconds_count[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.service }}: taxa de 5xx acima do SLO (0,5%)"
+          description: "Taxa de erro 5xx atual: {{ $value | humanizePercentage }}."
+
+  - name: kumoko-resiliencia
+    rules:
+      - alert: CircuitoAberto
+        expr: max by (service, target) (circuit_breaker_state) == 2
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Circuito {{ $labels.service }} -> {{ $labels.target }} aberto ha mais de 1 min"
+          description: "Chamadas ao {{ $labels.target }} falham rapido (503) enquanto o circuito estiver aberto."

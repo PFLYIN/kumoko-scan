@@ -1,8 +1,15 @@
 import type { IdempotencyKey } from './idempotency-key';
 import type { Pedido } from './pedido';
+import type { StatusPedido } from './pedido.constants';
 
 /** Token de injecao do repositorio (a implementacao TypeORM fica em repositories/). */
 export const PEDIDO_REPOSITORY = Symbol('PEDIDO_REPOSITORY');
+
+/** Filtros da listagem administrativa (todos opcionais). */
+export interface FiltroPedidos {
+  usuarioId?: number;
+  status?: StatusPedido;
+}
 
 export interface PaginaPedidos {
   pedidos: Pedido[];
@@ -26,4 +33,7 @@ export interface PedidoRepository {
 
   /** Pedidos do usuario, mais recentes primeiro. */
   listarPorUsuario(usuarioId: number, pagina: { page: number; limit: number }): Promise<PaginaPedidos>;
+
+  /** Todos os pedidos (visao administrativa), mais recentes primeiro. */
+  listarTodos(filtro: FiltroPedidos, pagina: { page: number; limit: number }): Promise<PaginaPedidos>;
 }

@@ -8,7 +8,7 @@ export default function LeitorNavegacao({ obraId, anterior, proximo }) {
       {anterior ? (
         <Link to={`/obras/${obraId}/capitulos/${anterior.id}`} className="btn-secondary">
           <ChevronLeft className="size-4" aria-hidden="true" />
-          <span>Cap. {formatNumeroCapitulo(anterior.numero)}</span>
+          <span>Anterior: cap. {formatNumeroCapitulo(anterior.numero)}</span>
         </Link>
       ) : (
         <span />
@@ -18,7 +18,7 @@ export default function LeitorNavegacao({ obraId, anterior, proximo }) {
       </Link>
       {proximo ? (
         <Link to={`/obras/${obraId}/capitulos/${proximo.id}`} className="btn-primary">
-          <span>Cap. {formatNumeroCapitulo(proximo.numero)}</span>
+          <span>Próximo: cap. {formatNumeroCapitulo(proximo.numero)}</span>
           <ChevronRight className="size-4" aria-hidden="true" />
         </Link>
       ) : (

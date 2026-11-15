@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Repository } from 'typeorm';
 import type { CatalogSettings } from '../../../config/catalog-settings';
+import type { ImageProcessorService } from '../../../shared/images/image-processor.service';
 import type { FileStorageService } from '../../../shared/storage/file-storage.service';
 import type { Obra } from '../entities/obra.entity';
 import { avaliacaoSeed, nomeDoArquivo, PRECO_SEED_MAX, PRECO_SEED_MIN, precoSeed } from './catalog-seed.data';
@@ -51,12 +52,19 @@ describe('CatalogSeedService', () => {
       removeFile: jest.fn(),
     };
     const cache = { invalidatePrefix: jest.fn().mockResolvedValue(0) };
+    const images = {
+      gerarVariantesCapa: jest.fn(async (p: string) => ({
+        thumbPath: p.replace('.jpg', '.thumb.webp'),
+        mediaPath: p.replace('.jpg', '.medium.webp'),
+      })),
+    };
     const settings = { seedEnabled: true, seedCoversDir: dir, ...over } as CatalogSettings;
     const service = new CatalogSeedService(
       repo as unknown as Repository<Obra>,
       storage as unknown as FileStorageService,
       settings,
       cache as unknown as CacheService,
+      images as unknown as ImageProcessorService,
     );
     return { service, repo, storage, cache };
   }
@@ -72,6 +80,8 @@ describe('CatalogSeedService', () => {
       tipo: 'manga',
       volume: 1,
       capaPath: 'covers/safe.jpg',
+      capaThumbPath: 'covers/safe.thumb.webp',
+      capaMediaPath: 'covers/safe.medium.webp',
     });
     expect(salvas.filter((o) => o.tipo === TipoObra.Livro)).toHaveLength(2);
     expect(salvas.filter((o) => o.tipo === TipoObra.Novel)).toHaveLength(2);
@@ -95,7 +105,7 @@ describe('CatalogSeedService', () => {
     const { service, repo, storage } = setup();
     repo.save.mockRejectedValueOnce(new Error('falhou'));
     await expect(service.run()).rejects.toThrow('falhou');
-    expect(storage.removeFile).toHaveBeenCalledTimes(2);
+    expect(storage.removeFile).toHaveBeenCalledTimes(6); // 2 capas + 2 variantes de cada
     // onApplicationBootstrap nunca lanca
     repo.save.mockRejectedValueOnce(new Error('falhou'));
     await expect(service.onApplicationBootstrap()).resolves.toBeUndefined();

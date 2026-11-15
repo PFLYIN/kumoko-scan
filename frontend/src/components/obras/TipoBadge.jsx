@@ -1,9 +1,10 @@
 import { tipoLabel } from '../../utils/format.js';
 
 const CORES = {
-  manga: 'bg-brand-500/15 text-brand-300 ring-brand-400/30',
-  livro: 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/30',
-  novel: 'bg-fuchsia-500/15 text-fuchsia-300 ring-fuchsia-400/30',
+  // Fundo escuro quase opaco: o selo continua legivel sobre capas claras.
+  manga: 'bg-ink-950/85 text-brand-300 ring-brand-400/40',
+  livro: 'bg-ink-950/85 text-emerald-300 ring-emerald-400/40',
+  novel: 'bg-ink-950/85 text-fuchsia-300 ring-fuchsia-400/40',
 };
 
 export default function TipoBadge({ tipo, className = '' }) {

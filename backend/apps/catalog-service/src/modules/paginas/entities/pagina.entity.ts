@@ -29,6 +29,10 @@ export class Pagina {
   @Column({ name: 'imagem_path', type: 'varchar', length: 512 })
   imagemPath: string;
 
+  /** Versao WebP de leitura (max 1200px). NULL ate ser gerada. */
+  @Column({ name: 'imagem_otimizada_path', type: 'varchar', length: 512, nullable: true })
+  imagemOtimizadaPath: string | null;
+
   @CreateDateColumn({ name: 'criado_em', type: 'datetime', precision: 3 })
   criadoEm: Date;
 }

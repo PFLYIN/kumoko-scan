@@ -12,6 +12,7 @@ import { CapitulosModule } from './modules/capitulos/capitulos.module';
 import { ObrasModule } from './modules/obras/obras.module';
 import { PaginasModule } from './modules/paginas/paginas.module';
 import { CatalogCoreModule } from './shared/catalog-core.module';
+import { ImageBackfillModule } from './shared/images/image-backfill.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { CatalogCoreModule } from './shared/catalog-core.module';
     ObrasModule,
     CapitulosModule,
     PaginasModule,
+    ImageBackfillModule,
   ],
 })
 export class CatalogServiceModule {}

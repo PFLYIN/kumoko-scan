@@ -1,13 +1,20 @@
-import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CacheService, type CacheResult } from '@kumoko/cache';
 import { In, type Repository } from 'typeorm';
 import { CatalogSettings } from '../../../config/catalog-settings';
-import { CatalogCacheKeys } from '../../../shared/cache/catalog-cache-keys';
+import { CatalogCacheKeys, OBRAS_CACHE_PREFIX } from '../../../shared/cache/catalog-cache-keys';
 import { isDuplicateEntryError } from '../../../shared/database/database-errors';
 import { FileStorageService } from '../../../shared/storage/file-storage.service';
 import { StoragePaths } from '../../../shared/storage/storage-paths';
 import { OBRA_NAO_ENCONTRADA } from '../../obras/services/obras.service';
+import { tipoAceitaCapitulos } from '../../obras/domain/tipo-obra';
 import { Obra } from '../../obras/entities/obra.entity';
 import { Pagina } from '../../paginas/entities/pagina.entity';
 import type { CapituloResponseDto, CreateCapituloDto, UpdateCapituloDto } from '../dto/capitulo.dto';
@@ -15,6 +22,8 @@ import { Capitulo } from '../entities/capitulo.entity';
 import { toCapituloResponse } from '../mappers/capitulo.mapper';
 
 export const CAPITULO_NAO_ENCONTRADO = 'Capítulo não encontrado.';
+export const CAPITULOS_NAO_PERMITIDOS =
+  'Livros não têm capítulos para leitura online. Apenas mangás e light novels aceitam capítulos.';
 export const CAPITULO_DUPLICADO = 'Já existe um capítulo com este número nesta obra.';
 
 @Injectable()
@@ -44,7 +53,13 @@ export class CapitulosService {
   }
 
   async create(obraId: number, dto: CreateCapituloDto): Promise<CapituloResponseDto> {
-    await this.assertObraExiste(obraId);
+    const obra = await this.obras.findOne({ where: { id: obraId }, select: { id: true, tipo: true } });
+    if (!obra) {
+      throw new NotFoundException(OBRA_NAO_ENCONTRADA);
+    }
+    if (!tipoAceitaCapitulos(obra.tipo)) {
+      throw new UnprocessableEntityException(CAPITULOS_NAO_PERMITIDOS);
+    }
     let capitulo: Capitulo;
     try {
       capitulo = await this.capitulos.save(
@@ -55,6 +70,7 @@ export class CapitulosService {
     }
     this.logger.log(`Capitulo criado capituloId=${capitulo.id} obraId=${obraId} numero=${capitulo.numero}`);
     await this.invalidarCapitulos(obraId);
+    await this.invalidarObras();
     return toCapituloResponse(capitulo, 0);
   }
 
@@ -85,6 +101,7 @@ export class CapitulosService {
     await this.storage.removeDir(StoragePaths.capituloPagesDir(capitulo.obraId, id));
     this.logger.log(`Capitulo excluido capituloId=${id} obraId=${capitulo.obraId}`);
     await this.invalidarCapitulos(capitulo.obraId);
+    await this.invalidarObras();
     await this.cache.invalidate(CatalogCacheKeys.paginas(id));
   }
 
@@ -99,6 +116,11 @@ export class CapitulosService {
   async invalidarCapitulos(obraId: number): Promise<void> {
     const removidas = await this.cache.invalidate(CatalogCacheKeys.capitulos(obraId));
     this.logger.log(`Cache de capitulos invalidado obraId=${obraId} removidas=${removidas}`);
+  }
+
+  /** totalCapitulos aparece nas respostas de obra (listas, detalhe, relacionadas). */
+  private async invalidarObras(): Promise<void> {
+    await this.cache.invalidatePrefix(OBRAS_CACHE_PREFIX);
   }
 
   private async assertObraExiste(obraId: number): Promise<void> {
