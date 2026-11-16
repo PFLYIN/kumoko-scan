@@ -3,6 +3,9 @@
 Documentação arquitetural, operacional e de gestão da versão **1.0.0** (microsserviços).
 Visão geral do produto e instruções de execução estão no [README da raiz](../README.md).
 
+> **Para a avaliação:** o [Mapa da Rubrica](./RUBRICA.md) liga cada item da rubrica ao que foi
+> entregue, onde está no código e na arquitetura, como foi feito e por quê.
+
 ## Estrutura
 
 ```
