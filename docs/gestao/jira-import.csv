@@ -6,102 +6,216 @@ Issue Id,Summary,Issue Type,Priority,Description,Parent,Epic Name,Labels,Story P
 5,EP-5 Plataforma e Entrega,Epic,High,"Microsserviços NestJS, gateway Nginx, Docker Compose, CI/CD e deploy.",,EP-5 Plataforma e Entrega,infra,,,Em andamento,
 6,EP-6 Qualidade e Operação,Epic,High,"Observabilidade, resiliência, segurança e documentação arquitetural.",,EP-6 Qualidade e Operação,qualidade,,,Em andamento,
 101,[US-01] Navegar no catálogo filtrando por tipo,Story,Highest,"Como leitor, quero navegar no catálogo filtrando por mangá, livro ou novel, para encontrar o tipo de obra que gosto.
-Aceite: GET /api/obras?tipo= retorna só o tipo pedido; paginação de 12 itens; lista vazia exibe mensagem.",1,,catalogo,5,KUM Sprint 6,Em revisão,
+Aceite: GET /api/obras?tipo= retorna só o tipo pedido; paginação de 12 itens; lista vazia exibe mensagem.",1,,catalogo,5,KUM Sprint 6,Concluído,
 102,[US-02] Buscar obras por nome,Story,Highest,"Como leitor, quero buscar obras pelo nome, para achar rapidamente um título.
-Aceite: busca parcial e sem diferenciar maiúsculas; busca do cabeçalho navega para /catalogo?busca=.",1,,catalogo,3,KUM Sprint 6,Em revisão,
+Aceite: busca parcial e sem diferenciar maiúsculas; busca do cabeçalho navega para /catalogo?busca=.",1,,catalogo,3,KUM Sprint 6,Concluído,
 103,[US-03] Ordenar o catálogo,Story,Medium,"Como leitor, quero ordenar por recentes, nome, preço ou mais vendidos, para comparar opções.
-Aceite: parâmetro ordenar=recentes|nome|preco-asc|preco-desc|mais-vendidos.",1,,catalogo,3,KUM Sprint 6,Em revisão,
+Aceite: parâmetro ordenar=recentes|nome|preco-asc|preco-desc|mais-vendidos.",1,,catalogo,3,KUM Sprint 6,Concluído,
 104,[US-04] Ver detalhes da obra,Story,Highest,"Como leitor, quero ver capa, descrição, preço e capítulos de uma obra, para decidir se leio ou compro.
-Aceite: 404 tratado com página própria; capítulos ordenados por número.",1,,catalogo,3,KUM Sprint 6,Em revisão,
+Aceite: 404 tratado com página própria; capítulos ordenados por número.",1,,catalogo,3,KUM Sprint 6,Concluído,
 105,[US-05] Ler capítulo com todas as páginas em ordem,Story,Highest,"Como leitor, quero ler um capítulo com todas as páginas em sequência vertical, para ler sem trocar de tela.
-Aceite: GET /api/capitulos/{id}/paginas devolve todas as páginas ordenadas (corrige bug do legado).",1,,catalogo,5,KUM Sprint 6,Em revisão,
+Aceite: GET /api/capitulos/{id}/paginas devolve todas as páginas ordenadas (corrige bug do legado).",1,,catalogo,5,KUM Sprint 6,Concluído,
 106,[US-06] Destaques na home,Story,Medium,"Como leitor, quero ver os mais vendidos e os lançamentos na home, para descobrir obras.
-Aceite: seções Mais vendidos (totalVendido) e Recentes.",1,,frontend,3,KUM Sprint 6,Em revisão,
+Aceite: seções Mais vendidos (totalVendido) e Recentes.",1,,frontend,3,KUM Sprint 6,Concluído,
 107,[US-07] Catálogo rápido com cache distribuído,Story,Highest,"Como leitor, quero que o catálogo responda rápido mesmo com muitos acessos, para navegar sem espera.
-Aceite: X-Cache MISS depois HIT; escrita invalida catalog:obras:; Redis fora do ar não gera 5xx.",1,,cache,5,KUM Sprint 6,Em revisão,
+Aceite: X-Cache MISS depois HIT; escrita invalida catalog:obras:; Redis fora do ar não gera 5xx.",1,,cache,5,KUM Sprint 6,Concluído,
 108,[US-08] Cadastro de cliente com CPF válido,Story,Highest,"Como visitante, quero me cadastrar com nome, e-mail, CPF e senha, para poder comprar.
-Aceite: 201 com role customer; 400 para CPF inválido ou senha fraca; 409 para e-mail/CPF repetido; resposta sem senha e CPF.",2,,auth,3,KUM Sprint 6,Em revisão,
+Aceite: 201 com role customer; 400 para CPF inválido ou senha fraca; 409 para e-mail/CPF repetido; resposta sem senha e CPF.",2,,auth,3,KUM Sprint 6,Concluído,
 109,[US-09] Login e logout com cookie httpOnly,Story,Highest,"Como cliente, quero entrar e sair da conta com segurança, para que ninguém use minha sessão.
-Aceite: cookie kumoko_token HttpOnly/Secure/SameSite=Strict; 401 genérico; 429 após 5 tentativas/min; logout limpa o cookie.",2,,auth,5,KUM Sprint 6,Em revisão,
+Aceite: cookie kumoko_token HttpOnly/Secure/SameSite=Strict; 401 genérico; 429 após 5 tentativas/min; logout limpa o cookie.",2,,auth,5,KUM Sprint 6,Concluído,
 110,[US-10] Editar perfil e trocar senha,Story,Medium,"Como cliente, quero editar meu nome e trocar a senha, para manter meus dados atualizados.
-Aceite: PATCH /api/users/me; novaSenha exige senhaAtual.",2,,auth,3,KUM Sprint 6,Em revisão,
+Aceite: PATCH /api/users/me; novaSenha exige senhaAtual.",2,,auth,3,KUM Sprint 6,Concluído,
 111,[US-11] Administrador provisionado pela configuração,Story,Highest,"Como administrador, quero que a conta admin seja criada só a partir de ADMIN_* no boot, para que ninguém vire admin pelo cadastro público.
-Aceite: seeder idempotente; cadastro público sempre customer.",2,,auth,2,KUM Sprint 6,Em revisão,
+Aceite: seeder idempotente; cadastro público sempre customer.",2,,auth,2,KUM Sprint 6,Concluído,
 112,[US-12] Total gasto atualizado após compra,Story,Low,"Como cliente, quero ver meu total gasto atualizado após cada compra, para acompanhar meus gastos.
-Aceite: consumidor de order.completed soma total_gasto em até 5 s; idempotente por event_id.",2,,mensageria,3,KUM Sprint 6,Em revisão,
+Aceite: consumidor de order.completed soma total_gasto em até 5 s; idempotente por event_id.",2,,mensageria,3,KUM Sprint 6,Concluído,
 113,[US-13] Carrinho com quantidades,Story,Highest,"Como cliente, quero adicionar obras ao carrinho e ajustar quantidades, para comprar várias de uma vez.
-Aceite: persistido em localStorage (obraId, quantidade, snapshot); quantidade 1..99; badge no cabeçalho.",3,,frontend,3,KUM Sprint 6,Em revisão,
+Aceite: persistido em localStorage (obraId, quantidade, snapshot); quantidade 1..99; badge no cabeçalho.",3,,frontend,3,KUM Sprint 6,Concluído,
 114,[US-14] Finalizar compra com preço do catálogo,Story,Highest,"Como cliente, quero finalizar a compra com o preço calculado pelo servidor, para pagar o valor correto.
-Aceite: cliente envia só obraId e quantidade; 201 com total calculado; campo extra preco => 400; obra inexistente => 422; publica order.completed.",3,,pedidos,8,KUM Sprint 6,Em revisão,
+Aceite: cliente envia só obraId e quantidade; 201 com total calculado; campo extra preco => 400; obra inexistente => 422; publica order.completed.",3,,pedidos,8,KUM Sprint 6,Concluído,
 115,[US-15] Checkout idempotente,Story,Highest,"Como cliente, quero não ser cobrado duas vezes se clicar duas vezes em Finalizar, para evitar pedidos duplicados.
-Aceite: mesmo Idempotency-Key + usuário => 200 com o mesmo pedido; UNIQUE(usuario_id, idempotency_key).",3,,pedidos,3,KUM Sprint 6,Em revisão,
+Aceite: mesmo Idempotency-Key + usuário => 200 com o mesmo pedido; UNIQUE(usuario_id, idempotency_key).",3,,pedidos,3,KUM Sprint 6,Concluído,
 116,[US-16] Histórico de pedidos,Story,Highest,"Como cliente, quero consultar meus pedidos, para lembrar o que comprei.
-Aceite: paginado, mais recentes primeiro; pedido de outro usuário => 404.",3,,pedidos,3,KUM Sprint 6,Em revisão,
+Aceite: paginado, mais recentes primeiro; pedido de outro usuário => 404.",3,,pedidos,3,KUM Sprint 6,Concluído,
 117,[US-17] Mensagem clara com checkout indisponível,Story,Medium,"Como cliente, quero uma mensagem clara quando o checkout estiver indisponível, para tentar novamente depois.
-Aceite: catálogo fora => 503 em menos de 3 s; circuito aberto => 503 imediato; carrinho mantido.",3,,resiliencia,5,KUM Sprint 6,Em revisão,
+Aceite: catálogo fora => 503 em menos de 3 s; circuito aberto => 503 imediato; carrinho mantido.",3,,resiliencia,5,KUM Sprint 6,Concluído,
 118,[US-18] Cadastrar obra com capa,Story,Highest,"Como administrador, quero cadastrar uma obra com capa, para disponibilizá-la no catálogo.
-Aceite: multipart com capa jpg/png/webp até 5 MB validada por magic bytes; 403 para customer.",4,,acervo,5,KUM Sprint 6,Em revisão,
+Aceite: multipart com capa jpg/png/webp até 5 MB validada por magic bytes; 403 para customer.",4,,acervo,5,KUM Sprint 6,Concluído,
 119,[US-19] Editar e excluir obra,Story,Highest,"Como administrador, quero editar e excluir obras, para manter o acervo correto.
-Aceite: nova capa apaga a antiga; exclusão remove capítulos, páginas e arquivos; publica catalog.obra.updated/deleted.",4,,acervo,3,KUM Sprint 6,Em revisão,
+Aceite: nova capa apaga a antiga; exclusão remove capítulos, páginas e arquivos; publica catalog.obra.updated/deleted.",4,,acervo,3,KUM Sprint 6,Concluído,
 120,[US-20] Gerenciar capítulos,Story,Highest,"Como administrador, quero criar, editar e excluir capítulos, para organizar a leitura.
-Aceite: número decimal único por obra (409 se repetido).",4,,acervo,3,KUM Sprint 6,Em revisão,
+Aceite: número decimal único por obra (409 se repetido).",4,,acervo,3,KUM Sprint 6,Concluído,
 121,[US-21] Enviar páginas do capítulo,Story,Highest,"Como administrador, quero enviar as páginas de um capítulo, para que os leitores possam lê-lo.
-Aceite: sem número informado vira a próxima página; exclusão remove o arquivo.",4,,acervo,5,KUM Sprint 6,Em revisão,
+Aceite: sem número informado vira a próxima página; exclusão remove o arquivo.",4,,acervo,5,KUM Sprint 6,Concluído,
 122,[US-22] Tabela do acervo para o admin,Story,Medium,"Como administrador, quero ver o acervo em tabela com ações de editar e excluir, para gerenciar rapidamente.
-Aceite: confirmação de exclusão na própria página (sem alert/confirm).",4,,frontend,3,KUM Sprint 6,Em revisão,
+Aceite: confirmação de exclusão na própria página (sem alert/confirm).",4,,frontend,3,KUM Sprint 6,Concluído,
 123,[US-23] Subir o sistema com um comando,Story,Highest,"Como avaliador, quero subir o sistema inteiro com docker compose up -d --build --wait, para testar sem configuração manual.
-Aceite: todos healthy; só 8080/8443 publicadas; catálogo de exemplo semeado.",5,,infra,5,KUM Sprint 6,Em revisão,
+Aceite: todos healthy; só 8080/8443 publicadas; catálogo de exemplo semeado.",5,,infra,5,KUM Sprint 6,Concluído,
 124,"[US-24] Pipeline CI com lint, testes, build e smoke",Story,Highest,"Como equipe, quero que cada push rode lint, testes, build e smoke test, para não integrar código quebrado.
-Aceite: jobs backend, frontend e compose-smoke obrigatórios no PR.",5,,ci-cd,5,KUM Sprint 6,Em revisão,
+Aceite: jobs backend, frontend e compose-smoke obrigatórios no PR.",5,,ci-cd,5,KUM Sprint 6,Concluído,
 125,[US-25] Publicação de imagens e deploy com rollback,Story,Low,"Como equipe, quero imagens versionadas por commit e um deploy com rollback, para publicar com segurança.
-Aceite: GHCR com :sha e :latest; deploy esqueleto desabilitado por DEPLOY_ENABLED; rollback por tag documentado.",5,,ci-cd,5,KUM Sprint 6,Em revisão,
+Aceite: GHCR com :sha e :latest; deploy esqueleto desabilitado por DEPLOY_ENABLED; rollback por tag documentado.",5,,ci-cd,5,KUM Sprint 6,Concluído,
 126,[US-26] Logs correlacionados e métricas,Story,Highest,"Como operador, quero logs JSON com request-id e métricas de latência, para diagnosticar incidentes.
-Aceite: X-Request-Id em gateway, serviços, chamada ao catálogo e correlationId de eventos; /metrics com http_request_duration_seconds; segredos redigidos.",6,,observabilidade,5,KUM Sprint 6,Em revisão,
+Aceite: X-Request-Id em gateway, serviços, chamada ao catálogo e correlationId de eventos; /metrics com http_request_duration_seconds; segredos redigidos.",6,,observabilidade,5,KUM Sprint 6,Concluído,
 127,[US-27] Recuperação automática de falhas,Story,Medium,"Como operador, quero que os serviços se recuperem sozinhos de quedas, para reduzir intervenção manual.
-Aceite: healthchecks, depends_on service_healthy, restart unless-stopped; serviço healthy em até 60 s após crash.",6,,resiliencia,3,KUM Sprint 6,Em revisão,
+Aceite: healthchecks, depends_on service_healthy, restart unless-stopped; serviço healthy em até 60 s após crash.",6,,resiliencia,3,KUM Sprint 6,Concluído,
 128,[US-28] Pagar com Pix ou cartão,Story,Lowest,"Como cliente, quero pagar com Pix ou cartão, para concluir a compra de verdade.
 Aceite: pedido AGUARDANDO_PAGAMENTO até confirmação do provedor; novo contexto Pagamentos.",3,,pedidos,13,,Backlog,
 129,[US-29] Dashboards de SLO com Prometheus e Grafana,Story,Low,"Como operador, quero dashboards de latência, erros e error budget, para acompanhar os SLOs.
-Aceite: Prometheus coletando /metrics dos 3 serviços; painel com p95 e 5xx.",6,,observabilidade,5,,Backlog,
+Aceite: Prometheus coletando /metrics dos 3 serviços; painel com p95 e 5xx.",6,,observabilidade,5,KUM Sprint 7,Concluído,
 130,[US-30] Entrega garantida de eventos,Story,Low,"Como equipe, quero que eventos não se percam quando um consumidor está fora, para manter contadores corretos.
 Aceite: Redis Streams com consumer group ou Outbox; reprocessamento após reconexão.",6,,mensageria,8,,Backlog,
 131,[US-31] Continuar a leitura de onde parei,Story,Low,"Como cliente, quero continuar a leitura do último capítulo aberto, para não procurar onde parei.
-Aceite: botão Continuar do capítulo N na página da obra.",1,,catalogo,5,,Backlog,
-201,Criar monorepo NestJS com apps e libs @kumoko/*,Task,Highest,"nest-cli monorepo; apps auth/catalog/order; libs common, security, observability, cache, messaging; Dockerfile multi-stage com ARG APP.",5,,backend,5,KUM Sprint 6,Em revisão,
-202,Migrations TypeORM por serviço,Task,Highest,"synchronize false, migrationsRun true, migrations importadas explicitamente (build webpack); tabelas da seção de contratos.",5,,backend,3,KUM Sprint 6,Em revisão,
-203,Script de init do MariaDB com database e usuário por serviço,Task,High,infra/mariadb/init/01-create-databases.sh com GRANT só no próprio database.,5,,infra,2,KUM Sprint 6,Em revisão,
-204,Configurar gateway Nginx,Task,Highest,"TLS autoassinado gerado na subida, rotas por prefixo, /files/ do volume, headers de segurança, rate limit, X-Request-Id, log JSON.",5,,infra,5,KUM Sprint 6,Em revisão,
-205,Implementar CacheService (cache-aside) em @kumoko/cache,Task,Highest,getOrSet com fallback em falha do Redis; invalidatePrefix com SCAN + UNLINK; logs HIT/MISS/INVALIDATE; testes com Redis mockado.,6,,cache,3,KUM Sprint 6,Em revisão,
-206,Implementar EventBus Redis Pub/Sub em @kumoko/messaging,Task,Highest,Envelope id/type/source/occurredAt/correlationId/payload; canais kumoko.events.<type>; contratos tipados; handler com try/catch.,6,,mensageria,3,KUM Sprint 6,Em revisão,
-207,"CatalogClient com timeout, retry e circuit breaker",Task,Highest,axios timeout CATALOG_TIMEOUT_MS; retry exponencial só em rede/5xx; opossum 50%/10 s; cache de preços 30 s; repassa X-Request-Id.,3,,resiliencia,5,KUM Sprint 6,Em revisão,
-208,Seed do catálogo com capas de exemplo,Task,Medium,"Copiar seed/covers para uploads/covers e criar um mangá por capa, mais 2 livros e 2 novels sem capa, quando SEED_CATALOG=true e tabela vazia.",1,,catalogo,2,KUM Sprint 6,Em revisão,
-209,Migrar frontend para Tailwind v4 com @tailwindcss/vite,Task,High,Remover postcss.config.js e tailwind.config.js; index.css com @import tailwindcss e tokens de tema; remover CSS por página.,1,,frontend,3,KUM Sprint 6,Em revisão,
-210,Workflow de CI/CD no GitHub Actions,Task,High,"Jobs backend, frontend, compose-smoke, publish-images (GHCR) e deploy esqueleto.",5,,ci-cd,3,KUM Sprint 6,Em revisão,
-211,Scripts de demonstração e smoke test,Task,Medium,"scripts/demo-cache.sh, demo-events.sh e smoke-test.sh usados na apresentação e na CI.",6,,qualidade,2,KUM Sprint 6,Em revisão,
-212,Documentação arquitetural,Task,High,"C4, ADRs 000-006, DDD/Context Map, quality scenarios, OpenAPI 3.1, SLO/SLI, resiliência, observabilidade, deploy, runbook, Cynefin, backlog.",6,,docs,5,KUM Sprint 6,Em revisão,
-213,Testes unitários do aggregate Pedido e value objects,Task,High,"Dinheiro, Quantidade, ObraRef, invariantes do Pedido (1..20 itens, soma de itens repetidos, total).",3,,testes,3,KUM Sprint 6,Em revisão,
-214,Testes de guards e AuthService,Task,High,"JwtAuthGuard (Bearer e cookie), RolesGuard, register/login, validador de CPF.",2,,testes,3,KUM Sprint 6,Em revisão,
+Aceite: botão Continuar do capítulo N na página da obra.",1,,catalogo,5,KUM Sprint 7,Concluído,
+201,Criar monorepo NestJS com apps e libs @kumoko/*,Task,Highest,"nest-cli monorepo; apps auth/catalog/order; libs common, security, observability, cache, messaging; Dockerfile multi-stage com ARG APP.",5,,backend,5,KUM Sprint 6,Concluído,
+202,Migrations TypeORM por serviço,Task,Highest,"synchronize false, migrationsRun true, migrations importadas explicitamente (build webpack); tabelas da seção de contratos.",5,,backend,3,KUM Sprint 6,Concluído,
+203,Script de init do MariaDB com database e usuário por serviço,Task,High,infra/mariadb/init/01-create-databases.sh com GRANT só no próprio database.,5,,infra,2,KUM Sprint 6,Concluído,
+204,Configurar gateway Nginx,Task,Highest,"TLS autoassinado gerado na subida, rotas por prefixo, /files/ do volume, headers de segurança, rate limit, X-Request-Id, log JSON.",5,,infra,5,KUM Sprint 6,Concluído,
+205,Implementar CacheService (cache-aside) em @kumoko/cache,Task,Highest,getOrSet com fallback em falha do Redis; invalidatePrefix com SCAN + UNLINK; logs HIT/MISS/INVALIDATE; testes com Redis mockado.,6,,cache,3,KUM Sprint 6,Concluído,
+206,Implementar EventBus Redis Pub/Sub em @kumoko/messaging,Task,Highest,Envelope id/type/source/occurredAt/correlationId/payload; canais kumoko.events.<type>; contratos tipados; handler com try/catch.,6,,mensageria,3,KUM Sprint 6,Concluído,
+207,"CatalogClient com timeout, retry e circuit breaker",Task,Highest,axios timeout CATALOG_TIMEOUT_MS; retry exponencial só em rede/5xx; opossum 50%/10 s; cache de preços 30 s; repassa X-Request-Id.,3,,resiliencia,5,KUM Sprint 6,Concluído,
+208,Seed do catálogo com capas de exemplo,Task,Medium,"Copiar seed/covers para uploads/covers e criar um mangá por capa, mais 2 livros e 2 novels sem capa, quando SEED_CATALOG=true e tabela vazia.",1,,catalogo,2,KUM Sprint 6,Concluído,
+209,Migrar frontend para Tailwind v4 com @tailwindcss/vite,Task,High,Remover postcss.config.js e tailwind.config.js; index.css com @import tailwindcss e tokens de tema; remover CSS por página.,1,,frontend,3,KUM Sprint 6,Concluído,
+210,Workflow de CI/CD no GitHub Actions,Task,High,"Jobs backend, frontend, compose-smoke, publish-images (GHCR) e deploy esqueleto.",5,,ci-cd,3,KUM Sprint 6,Concluído,
+211,Scripts de demonstração e smoke test,Task,Medium,"scripts/demo-cache.sh, demo-events.sh e smoke-test.sh usados na apresentação e na CI.",6,,qualidade,2,KUM Sprint 6,Concluído,
+212,Documentação arquitetural,Task,High,"C4, ADRs 000-006, DDD/Context Map, quality scenarios, OpenAPI 3.1, SLO/SLI, resiliência, observabilidade, deploy, runbook, Cynefin, backlog.",6,,docs,5,KUM Sprint 6,Concluído,
+213,Testes unitários do aggregate Pedido e value objects,Task,High,"Dinheiro, Quantidade, ObraRef, invariantes do Pedido (1..20 itens, soma de itens repetidos, total).",3,,testes,3,KUM Sprint 6,Concluído,
+214,Testes de guards e AuthService,Task,High,"JwtAuthGuard (Bearer e cookie), RolesGuard, register/login, validador de CPF.",2,,testes,3,KUM Sprint 6,Concluído,
 301,Cadastro público concedia papel de admin pelo e-mail fixo,Bug,Highest,"UserController do legado definia is_admin quando o e-mail era igual a um endereço fixo. Qualquer pessoa que registrasse esse e-mail virava admin.
-Correção: cadastro sempre cria customer; admin provisionado por ADMIN_* no boot.",2,,seguranca,,KUM Sprint 6,Em revisão,
+Correção: cadastro sempre cria customer; admin provisionado por ADMIN_* no boot.",2,,seguranca,,KUM Sprint 6,Concluído,
 302,Segredo JWT com valor de fallback hardcoded,Bug,Highest,"AuthController e middleware de auth usavam um segredo literal quando JWT_SECRET não estava definido.
-Correção: JWT_SECRET obrigatório (mínimo 32 caracteres) validado com Joi; serviço não sobe sem ele.",2,,seguranca,,KUM Sprint 6,Em revisão,
+Correção: JWT_SECRET obrigatório (mínimo 32 caracteres) validado com Joi; serviço não sobe sem ele.",2,,seguranca,,KUM Sprint 6,Concluído,
 303,Compra gravava preço e total enviados pelo cliente,Bug,Highest,"POST /compras/finalizar somava o total recebido no corpo e gravava itens sem transação nem consulta ao catálogo.
-Correção: order-service busca preços no catálogo, aggregate Pedido calcula o total, transação e idempotência.",3,,pedidos,,KUM Sprint 6,Em revisão,
+Correção: order-service busca preços no catálogo, aggregate Pedido calcula o total, transação e idempotência.",3,,pedidos,,KUM Sprint 6,Concluído,
 304,Tailwind não carregava no frontend,Bug,High,"Configuração mista de PostCSS e Tailwind v4 fazia as classes utilitárias não serem geradas; páginas usavam CSS avulso.
-Correção: plugin @tailwindcss/vite e index.css único.",1,,frontend,,KUM Sprint 6,Em revisão,
+Correção: plugin @tailwindcss/vite e index.css único.",1,,frontend,,KUM Sprint 6,Concluído,
 305,URL da API e das imagens hardcoded no frontend,Bug,High,"api.js fixava https://kumokoscan.local/api e as páginas montavam imagens com http://localhost:3000 (bloqueado em página HTTPS).
-Correção: baseURL /api relativa (VITE_API_URL opcional) e URLs /files/ servidas pelo gateway.",1,,frontend,,KUM Sprint 6,Em revisão,
+Correção: baseURL /api relativa (VITE_API_URL opcional) e URLs /files/ servidas pelo gateway.",1,,frontend,,KUM Sprint 6,Concluído,
 306,Rota de páginas do capítulo retornava só uma página,Bug,High,"GET /page/:capitulo_id usava findOne e devolvia um único registro.
-Correção: GET /api/capitulos/{id}/paginas devolve todas as páginas ordenadas por número.",1,,catalogo,,KUM Sprint 6,Em revisão,
+Correção: GET /api/capitulos/{id}/paginas devolve todas as páginas ordenadas por número.",1,,catalogo,,KUM Sprint 6,Concluído,
 307,Banco e API publicados direto no host,Bug,High,"Compose antigo publicava 3306 e 3000 sem proxy nem TLS.
-Correção: só o gateway publica portas (8080/8443).",5,,infra,,KUM Sprint 6,Em revisão,
+Correção: só o gateway publica portas (8080/8443).",5,,infra,,KUM Sprint 6,Concluído,
 308,Chave privada TLS versionada no repositório,Bug,Highest,"Arquivo de chave do certificado local estava rastreado pelo Git.
 Correção: removido do índice (v0.4.0); certificado gerado na subida do gateway e ignorado pelo Git. Considerar a chave antiga comprometida.",5,,seguranca,,KUM Sprint 5,Concluído,
 309,DB_HOST do .env.example diferente do serviço do Compose,Bug,Medium,"O exemplo usava mariadb enquanto o serviço se chamava database, quebrando a conexão de quem seguia o exemplo.
-Correção: serviço mariadb e variáveis por serviço no .env.example.",5,,infra,,KUM Sprint 6,Em revisão,
+Correção: serviço mariadb e variáveis por serviço no .env.example.",5,,infra,,KUM Sprint 6,Concluído,
 310,Erro 500 expunha mensagem interna e senha ausente gerava exceção,Bug,Medium,"Handler global devolvia err.message; validators acessava senha.length sem checar existência.
-Correção: ValidationPipe com DTOs e AllExceptionsFilter com mensagem genérica em 5xx.",6,,backend,,KUM Sprint 6,Em revisão,
+Correção: ValidationPipe com DTOs e AllExceptionsFilter com mensagem genérica em 5xx.",6,,backend,,KUM Sprint 6,Concluído,
 311,Edição de mangá redirecionava para rota inexistente,Bug,Medium,"EditarManga navegava para /manga enquanto a rota registrada era /mangas; não havia página 404.
-Correção: rotas consolidadas e rota * de 404.",1,,frontend,,KUM Sprint 6,Em revisão,
+Correção: rotas consolidadas e rota * de 404.",1,,frontend,,KUM Sprint 6,Concluído,
 312,Logout apagava todo o localStorage,Bug,Low,"logout chamava localStorage.clear(), apagando dados de outras funcionalidades; token ficava acessível a scripts.
-Correção: sessão por cookie httpOnly e POST /api/auth/logout.",2,,auth,,KUM Sprint 6,Em revisão,
+Correção: sessão por cookie httpOnly e POST /api/auth/logout.",2,,auth,,KUM Sprint 6,Concluído,
+132,[US-32] Filtrar o catálogo por gênero,Story,High,"Como leitor, quero filtrar o catálogo por gênero, para encontrar obras do estilo que gosto.
+
+Critérios de aceite:
+Dado o catálogo com obras classificadas por gênero
+Quando eu seleciono o gênero ""Fantasia""
+Então vejo apenas obras com esse gênero, com a contagem de obras por gênero
+E o filtro fica na URL e combina com tipo, busca e ordenação",1,,catalogo,5,KUM Sprint 7,Concluído,
+133,[US-33] Obras relacionadas na página da obra,Story,Medium,"Como leitor, quero ver obras parecidas na página de uma obra, para descobrir o que ler a seguir.
+
+Critérios de aceite:
+Dado que abro a página de uma obra
+Então vejo até 6 obras relacionadas por gênero em comum e mesmo tipo
+E a própria obra não aparece na lista",1,,catalogo,3,KUM Sprint 7,Concluído,
+134,[US-34] Leitor com modo página a página e largura ajustável,Story,High,"Como leitor, quero escolher entre rolagem contínua e página a página e ajustar a largura, para ler confortavelmente no notebook ou no monitor.
+
+Critérios de aceite:
+Dado que estou lendo um capítulo
+Quando troco o modo ou a largura
+Então a leitura se ajusta e vejo ""Página N de M"" e a barra de progresso
+E as setas do teclado mudam de página/capítulo",1,,"catalogo,frontend",5,KUM Sprint 7,Concluído,
+135,[US-35] Busca com sugestões no cabeçalho,Story,Medium,"Como visitante, quero ver sugestões enquanto digito na busca, para chegar mais rápido a uma obra.
+
+Critérios de aceite:
+Dado que digito pelo menos 2 letras na busca do cabeçalho
+Então vejo até 5 sugestões, navegáveis pelo teclado
+E posso ir para ""Ver todos os N resultados""",1,,frontend,3,KUM Sprint 7,Concluído,
+136,[US-36] Confirmação antes de finalizar e tela de sucesso do pedido,Story,High,"Como cliente, quero revisar o pedido antes de confirmar e ver uma tela de sucesso, para ter certeza do que comprei.
+
+Critérios de aceite:
+Dado que clico em ""Finalizar compra""
+Então vejo um resumo com itens, quantidades e total estimado
+Quando confirmo
+Então vou para a tela de sucesso com o número do pedido e os itens",3,,"pedidos,frontend",3,KUM Sprint 7,Concluído,
+137,[US-37] Detalhe do pedido no histórico,Story,Medium,"Como cliente, quero abrir um pedido do meu histórico, para ver seus itens e valores.
+
+Critérios de aceite:
+Dado um pedido meu
+Quando clico em ""Detalhes""
+Então vejo itens, quantidades, preços e total
+E o pedido de outra pessoa retorna ""não encontrado""",3,,"pedidos,frontend",2,KUM Sprint 7,Concluído,
+138,[US-38] Painel administrativo com vendas,Story,High,"Como administrador, quero um painel com receita, pedidos, ticket médio e as obras mais vendidas, para acompanhar o negócio.
+
+Critérios de aceite:
+Dado que sou admin
+Quando abro /admin
+Então vejo os indicadores reais, o gráfico de vendas dos últimos 30 dias, o top 5 de obras e os pedidos recentes
+E um cliente comum recebe ""Acesso restrito""",4,,"acervo,pedidos",8,KUM Sprint 7,Concluído,
+139,[US-39] Gestão de pedidos pelo administrador,Story,Medium,"Como administrador, quero listar todos os pedidos com filtros, para dar suporte aos clientes.
+
+Critérios de aceite:
+Dado a tela /admin/pedidos
+Quando filtro por status ou cliente
+Então vejo só os pedidos correspondentes, com os itens ao expandir",4,,"acervo,pedidos",3,KUM Sprint 7,Concluído,
+140,[US-40] Gestão de usuários e papéis,Story,Medium,"Como administrador, quero buscar usuários e promover ou rebaixar administradores, para delegar a gestão do acervo.
+
+Critérios de aceite:
+Dado a tela /admin/usuarios
+Quando promovo um cliente
+Então ele passa a ser admin após o próximo login
+E não consigo rebaixar a mim mesmo nem remover o último admin",2,,"auth,acervo",5,KUM Sprint 7,Concluído,
+141,[US-41] Reordenar páginas de um capítulo,Story,Medium,"Como administrador, quero reordenar as páginas de um capítulo arrastando, para corrigir uploads fora de ordem.
+
+Critérios de aceite:
+Dado um capítulo com páginas
+Quando arrasto (ou uso mover acima/abaixo) e salvo a ordem
+Então o leitor mostra as páginas na nova ordem",4,,acervo,5,KUM Sprint 7,Concluído,
+142,[US-42] Upload de páginas com progresso por arquivo,Story,Low,"Como administrador, quero ver o progresso de cada arquivo enviado e reenviar os que falharam, para publicar capítulos grandes sem retrabalho.
+
+Critérios de aceite:
+Dado que envio várias páginas
+Então cada arquivo mostra Aguardando, Enviando %, Enviada ou Erro
+E ""Tentar novamente"" reenvia só os que falharam",4,,"acervo,frontend",3,KUM Sprint 7,Concluído,
+143,[US-43] Formulário de obra com validação em tempo real e preview,Story,Medium,"Como administrador, quero ver erros enquanto preencho e uma prévia do card, para cadastrar obras sem tentativa e erro.
+
+Critérios de aceite:
+Dado o formulário de obra
+Quando saio de um campo inválido
+Então vejo a mensagem de erro
+E vejo a prévia do card e posso informar gêneros como tags",4,,"acervo,frontend",3,KUM Sprint 7,Concluído,
+215,Gerar variantes WebP das capas e páginas (sharp),Task,High,"Gerar thumb (360px), medium (720px) e versão de leitura (1200px) no upload, com backfill das imagens existentes. Resultado medido: imagens da 1ª página do catálogo de ~19,9 MiB para ~0,84 MiB (-95,8%).",1,,"catalogo,performance",5,KUM Sprint 7,Concluído,
+216,Prometheus e Grafana com dashboard da stack,Task,High,"Adicionar Prometheus (interno) e Grafana em /grafana/ com dashboard provisionado (tráfego, erros, latência, cache, eventos, circuit breaker, SLOs) e 3 alertas.",6,,observabilidade,5,KUM Sprint 7,Concluído,
+217,Auditoria funcional no navegador e testes E2E com Playwright,Task,Highest,"Percorrer todas as telas como visitante, cliente e admin (mangá, livro, light novel) em 1366 e 1920, corrigir o que era só aparência e transformar os fluxos em testes E2E. Resultado: 82 testes E2E no CI.",6,,"testes,qualidade",8,KUM Sprint 7,Concluído,
+218,Revisão de segurança e corretude,Task,High,"25 pontos verificados contra a stack em execução (IDOR, papéis, uploads, SQL, CSRF, CORS, headers, Grafana, dependências). Relatório em docs/qualidade/revisao-seguranca.md.",6,,seguranca,3,KUM Sprint 7,Concluído,
+219,Mapa da rubrica (docs/RUBRICA.md),Task,Medium,"Documento ligando cada item da rubrica à entrega, ao código, à arquitetura, à justificativa e à demonstração.",6,,docs,2,KUM Sprint 7,Concluído,
+313,CI falhava: pasta uploads da lib de segurança ignorada pelo .gitignore,Bug,Highest,"O padrão ""uploads/"" do backend/.gitignore ignorava backend/libs/security/src/uploads/. Correção: padrão restrito a /uploads/ e /apps/*/uploads/.",5,,"ci-cd,seguranca",,KUM Sprint 7,Concluído,
+314,Catálogo parava de carregar após algumas páginas (limite de requisições),Bug,Highest,Leituras públicas tinham limite de 100 req/min por IP; navegação normal estourava. Correção: 600 req/min para leituras públicas (cacheadas no Redis).,1,,catalogo,,KUM Sprint 7,Concluído,
+315,Livro mostrava seção de capítulos vazia,Bug,High,Regra definida: Livro não tem volume nem capítulos online. Backend retorna 422 ao criar capítulo em livro e 409 ao transformar em livro uma obra com capítulos; front esconde a seção.,1,,"catalogo,frontend",,KUM Sprint 7,Concluído,
+316,Carrinho com obra removida do catálogo quebrava o checkout,Bug,High,"Item agora aparece como ""Indisponível"", sai do total e bloqueia o checkout até ser removido.",3,,"pedidos,frontend",,KUM Sprint 7,Concluído,
+317,Total investido do perfil desatualizado até recarregar,Bug,Medium,O perfil agora recarrega os dados do usuário ao ser aberto.,2,,"auth,frontend",,KUM Sprint 7,Concluído,
+318,Permissão do volume de uploads impedia o seed do catálogo,Bug,High,Volume compartilhado herdava dono root do gateway. Correção: chown 1000:1000 no Dockerfile do gateway.,5,,infra,,KUM Sprint 7,Concluído,
+144,[US-44] Carrinho em gaveta lateral,Story,Low,"Como cliente, quero abrir o carrinho numa gaveta lateral sem sair da página, para continuar navegando.
+
+Critérios de aceite:
+Dado que adiciono uma obra
+Quando clico no ícone do carrinho
+Então a gaveta abre com os itens e o total, e posso ir ao checkout",3,,frontend,3,,Backlog,
+145,[US-45] Progresso de leitura salvo na conta,Story,Low,"Como leitor, quero que meu progresso de leitura seja salvo na minha conta, para continuar de outro dispositivo.
+
+Critérios de aceite:
+Dado que li até a página 5 no notebook
+Quando entro pelo celular
+Então ""Continuar lendo"" me leva à página 5",1,,"catalogo,auth",5,,Backlog,
+146,[US-46] Capítulos de demonstração no seed,Story,Medium,"Como avaliador, quero que uma instalação nova já tenha capítulos para ler, para testar o leitor sem cadastrar conteúdo.
+
+Critérios de aceite:
+Dado uma instalação nova
+Quando abro um mangá do seed
+Então existe pelo menos um capítulo com páginas (imagens próprias, sem direitos autorais)",1,,catalogo,3,,Backlog,
+147,[US-47] Mudança de papel com efeito imediato,Story,Lowest,"Como administrador, quero que promover ou rebaixar um usuário tenha efeito na hora, para revogar acesso imediatamente.
+
+Critérios de aceite:
+Dado um usuário logado rebaixado
+Quando ele faz a próxima requisição de admin
+Então recebe 403 (versionamento de token ou lista de revogação)",2,,"auth,seguranca",5,,Backlog,

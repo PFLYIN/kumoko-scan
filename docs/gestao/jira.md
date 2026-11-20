@@ -64,8 +64,8 @@ WIP. Atribuição: cada issue tem um único responsável; o responsável move o 
 
 ## 4. Importação do backlog (CSV)
 
-Arquivo: [`jira-import.csv`](./jira-import.csv) — 6 épicos, 31 stories, 14 tasks e
-12 bugs (bugs reais encontrados no código legado).
+Arquivo: [`jira-import.csv`](./jira-import.csv) — 90 issues: 6 épicos, 47 stories, 19 tasks e
+18 bugs (bugs reais do código legado e os encontrados na auditoria da Sprint 7).
 
 Colunas: `Issue Id, Summary, Issue Type, Priority, Description, Parent, Epic Name,
 Labels, Story Points, Sprint, Status, Assignee`.
@@ -78,7 +78,7 @@ Passo a passo (Jira Cloud → *Configurações do sistema → Importação exter
    - `Parent` → **Parent Id** (liga story/task/bug ao épico pelo `Issue Id` do épico);
    - `Epic Name` → **Epic Name** (só preenchido nos épicos; necessário em projetos company-managed);
    - `Story Points` → **Story point estimate**;
-   - `Sprint` → **Sprint** (criar antes as sprints "KUM Sprint 5" e "KUM Sprint 6", ou deixar sem mapear);
+   - `Sprint` → **Sprint** (criar antes as sprints "KUM Sprint 5", "KUM Sprint 6" e "KUM Sprint 7", ou deixar sem mapear);
    - `Status` → mapear valores: `Backlog`, `Em andamento`, `Em revisão`, `Concluído` para os status do workflow;
    - `Assignee` → vazio de propósito: os responsáveis são definidos na planning.
 3. Validar a pré-visualização e importar.

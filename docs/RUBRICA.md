@@ -482,7 +482,7 @@ após uma compra.
 ## 10. Gestão do Trabalho via Jira (1,0)
 
 ### O que fizemos
-- **Backlog pronto para importação**: 63 issues — **6 épicos, 31 stories, 14 tasks, 12 bugs**
+- **Backlog pronto para importação**: 90 issues — **6 épicos, 47 stories, 19 tasks, 18 bugs**
   (os bugs são reais, encontrados no código antigo: admin por e-mail fixo, preço vindo do cliente,
   segredo JWT com fallback, Tailwind sem carregar, URL de API fixa, etc.).
 - **Guia de uso**: tipos de issue, workflow (Backlog → Pronto → Em andamento → Em revisão →
@@ -560,7 +560,7 @@ Critérios de aceite em Gherkin são **testáveis**: vários viraram diretamente
 | 7 | Mensageria | 0,5 | 4 eventos via Pub/Sub, consumidores idempotentes, logs | `libs/messaging/`, `scripts/demo-events.sh` |
 | 8 | Docker Compose + Nginx | 1,0 | 9 containers, gateway único com TLS e segurança | `docker-compose.yml`, `infra/nginx/` |
 | 9 | Boas práticas | 0,5 | Módulos/DTOs/services/controllers, erros, logs, 409 testes | `backend/`, `docs/qualidade/` |
-| 10 | Jira | 1,0 | 63 issues prontas para importar + guia | `docs/gestao/jira*` — **importar** |
+| 10 | Jira | 1,0 | 90 issues prontas para importar + guia | `docs/gestao/jira*` — **importar** |
 | 11 | Cynefin | 1,0 | Complexo (produto) + Complicado (técnico) → híbrida/ágil | `docs/gestao/cynefin.md` |
 | 12 | Ciclo de vida ágil | 1,0 | Backlog priorizado, User Stories + Gherkin, SemVer | `docs/gestao/backlog.md`, `CHANGELOG.md` |
 
