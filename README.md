@@ -610,3 +610,11 @@ A sequência completa do checkout, com retry, circuit breaker e eventos, está e
 
 Detalhes por versão no [`CHANGELOG.md`](CHANGELOG.md); convenções de versionamento e
 plano de releases em [`docs/gestao/backlog.md`](docs/gestao/backlog.md#6-versionamento-e-lançamentos-parciais).
+
+## Início rápido no Windows e acesso ao banco
+
+- **`iniciar.cmd`** (dois cliques): cria o `.env` se faltar, sobe os containers e abre https://localhost:8443.
+- **DBeaver** (tipo MariaDB): host `127.0.0.1`, porta `3307` (altere com `DB_HOST_PORT` no `.env`),
+  usuário `root` e senha `MARIADB_ROOT_PASSWORD` do `.env`. A porta só existe em desenvolvimento
+  (`docker-compose.override.yml`) e só é visível no próprio computador.
+- As senhas do banco são gravadas na **primeira subida**: mudar o `.env` depois não altera o banco já criado.

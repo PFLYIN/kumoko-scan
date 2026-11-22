@@ -1,0 +1,7 @@
+# Ajustes de DESENVOLVIMENTO: o "docker compose up" carrega este arquivo automaticamente.
+# O deploy usa somente docker-compose.yml, entao la o banco continua fechado.
+services:
+  mariadb:
+    ports:
+      # Acesso pelo DBeaver. 127.0.0.1 = so este computador enxerga; nada fica aberto na rede.
+      - "127.0.0.1:${DB_HOST_PORT:-3307}:3306"

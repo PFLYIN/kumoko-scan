@@ -16,3 +16,4 @@ Dockerfile  text eol=lf
 *.webp binary
 *.gif  binary
 *.ico  binary
+*.cmd text eol=crlf
